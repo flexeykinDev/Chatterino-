@@ -106,14 +106,32 @@ src/
   modules/
     shadow.ts           shadow chat storage and restrictions
     presence.ts         presence states and typing indicators
+    globalBans.ts       cross-channel ban registry
 test/                   one file per module
 ```
+
+## The ban registry
+
+A marker next to someone's name means "this person was banned elsewhere" — it is
+a prompt to look, not a verdict. Three rules keep it honest:
+
+- **A moderator can vouch.** `clear()` hides the marker for everyone watching
+  that channel, and records which moderator decided that.
+- **Lifted bans stop counting.** A background pass re-checks old bans; one that
+  no longer holds on Twitch is marked lifted and drops out of the marker, while
+  staying visible in the history so the record is intact.
+- **Your own channel is excluded.** A ban on the channel you are watching does
+  not contribute, because that chat can already see it.
+
+Re-banning someone overrides both a previous vouch and a previous lift: the ban
+is in force again, and the channel that vouched has evidently changed its mind.
 
 ## Status
 
 Implemented and tested: configuration, schema and migrations, Twitch token
 validation, frame validation, shadow chat storage and moderation, presence
-states, typing indicators.
+states, typing indicators, and the cross-channel ban registry with its relay and
+revalidation support.
 
 Not yet implemented: the HTTP and WebSocket entry point wiring these together,
-the global ban registry and relay, and the paint library.
+and the paint library.
