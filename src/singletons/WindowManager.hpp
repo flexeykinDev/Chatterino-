@@ -50,6 +50,15 @@ enum class WindowType;
 enum class SettingsDialogPreference;
 class FramelessEmbedWindow;
 
+/// Which parts of a message the layout is allowed to emit, given the settings.
+///
+/// Pulled out of WindowManager so it can be checked without a window. The list
+/// is assembled flag by flag rather than derived from anything, so an element
+/// carrying a flag nobody remembered to set here is simply never laid out — it
+/// does not warn, it does not draw, and every test that builds its own flags
+/// passes regardless.
+MessageElementFlags wordFlagsFor(Settings *settings);
+
 class WindowManager final : public QObject
 {
     Q_OBJECT

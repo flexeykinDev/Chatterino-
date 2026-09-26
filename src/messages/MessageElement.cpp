@@ -657,11 +657,6 @@ void GlobalBanMarkerElement::addToContainer(MessageLayoutContainer &container,
         return;
     }
 
-    if (!getSettings()->showGlobalBanMarker)
-    {
-        return;
-    }
-
     auto *companion = getApp()->getCompanion();
     if (companion == nullptr)
     {
