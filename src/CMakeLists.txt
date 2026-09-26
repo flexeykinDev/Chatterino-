@@ -407,6 +407,13 @@ set(SOURCE_FILES
         providers/emoji/Emojis.hpp
         providers/emoji/EmojiStyle.hpp
 
+        providers/emoteeffects/EmoteEffect.cpp
+        providers/emoteeffects/EmoteEffect.hpp
+        providers/emoteeffects/EmoteEffectParser.cpp
+        providers/emoteeffects/EmoteEffectParser.hpp
+        providers/emoteeffects/EmoteEffectRegistry.cpp
+        providers/emoteeffects/EmoteEffectRegistry.hpp
+
         providers/ffz/FfzBadges.cpp
         providers/ffz/FfzBadges.hpp
         providers/ffz/FfzEmotes.cpp
