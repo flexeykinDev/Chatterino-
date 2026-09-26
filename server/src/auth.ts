@@ -8,7 +8,6 @@
 
 import { request } from "undici";
 import type { Config } from "./config.ts";
-import type { Db } from "./db.ts";
 
 export interface Identity {
   twitchId: string;
@@ -51,7 +50,6 @@ export class TwitchValidator implements Validator {
 
   constructor(
     private readonly config: Config,
-    private readonly db: Db,
     private readonly now: () => number = Date.now,
   ) {}
 
@@ -71,7 +69,6 @@ export class TwitchValidator implements Validator {
       identity,
       expiresAt: this.now() + this.config.tokenCacheTtlMs,
     });
-    this.rememberUser(identity);
 
     return identity;
   }
@@ -99,24 +96,6 @@ export class TwitchValidator implements Validator {
     }
 
     return parseIdentity(body, this.config.twitchClientId);
-  }
-
-  /**
-   * Keeps a local record of the account so later joins can render a login and
-   * display name without another round trip to Twitch.
-   */
-  private rememberUser(identity: Identity): void {
-    const now = this.now();
-    this.db
-      .prepare(
-        `INSERT INTO users (twitch_id, login, display_name, first_seen_at, last_seen_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (twitch_id) DO UPDATE SET
-           login = excluded.login,
-           display_name = excluded.display_name,
-           last_seen_at = excluded.last_seen_at`,
-      )
-      .run(identity.twitchId, identity.login, identity.displayName, now, now);
   }
 }
 
