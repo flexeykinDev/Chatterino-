@@ -36,6 +36,7 @@ All settings come from the environment. Defaults suit local development.
 | `TOKEN_CACHE_TTL_MS` | `300000` | How long a validated token stays cached. |
 | `PRESENCE_TIMEOUT_MS` | `90000` | Heartbeat age past which a session reads as offline. |
 | `MAX_SHADOW_MESSAGE_LENGTH` | `500` | Longest accepted shadow chat message. |
+| `LOG_REQUESTS` | *(unset)* | `1` prints one line per request. When a client feature shows nothing, this is how you tell "asked and got nothing" from "never asked". |
 
 Leaving `TWITCH_CLIENT_ID` empty disables the check that a token was issued to
 *your* application. That is convenient in development and unsafe in production:

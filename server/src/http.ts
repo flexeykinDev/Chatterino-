@@ -80,6 +80,21 @@ function parseIds(raw: unknown): string[] {
 export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> {
   const app = Fastify({ logger: false, bodyLimit: 256 * 1024 });
 
+  // A server you cannot watch is hard to develop against: when a client feature
+  // shows nothing, the first thing worth knowing is whether it asked at all,
+  // and silence here is indistinguishable from a request that never arrived.
+  // Off by default, because this prints one line per request.
+  if (process.env.LOG_REQUESTS === "1") {
+    app.addHook("onResponse", async (request, reply) => {
+      console.log(
+        "%s %s -> %d",
+        request.method,
+        request.url,
+        reply.statusCode,
+      );
+    });
+  }
+
   await app.register(cors, {
     origin: deps.config.allowedOrigins.includes("*")
       ? true
