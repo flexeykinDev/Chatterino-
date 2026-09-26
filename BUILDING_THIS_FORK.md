@@ -74,6 +74,33 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
 `CMAKE_POLICY_VERSION_MINIMUM` is needed with CMake 4: it refuses a
 `cmake_minimum_required` below 3.5, and the bundled WinToast asks for 3.4.
 
+#### The build directory is not yet runnable
+
+`build\bin\chatterino.exe` will not start on its own. Double-clicking it raises
+a system error naming `Qt6Widgets.dll`, then `Qt6Gui.dll`, then `Qt6Svg.dll`,
+then `Qt6Network.dll` — one dialog at a time, so it looks like four problems
+rather than one. Qt's libraries simply are not beside it, and they are only
+found at all from a shell that happens to have Qt's `bin` on `PATH`. Running the
+test binary from such a shell therefore proves nothing about the app.
+
+Copy the Qt runtime next to the executable once, after building:
+
+```sh
+windeployqt build/bin/chatterino.exe --release --no-compiler-runtime \
+    --no-opengl-sw --dir build/bin/
+```
+
+That brings in the DLLs and, just as necessary, the plugin directories —
+`platforms`, `imageformats`, `tls`, `styles`, `iconengines`. A build missing
+only `platforms` starts and then aborts complaining that no Qt platform plugin
+could be initialised, which reads like a different fault entirely.
+
+Unlike upstream's instructions, do not pass `--no-translations`: those are Qt's
+own catalogues, and they are what translates the standard dialogs this fork's
+language setting cannot reach by itself.
+
+Re-run it after any build that relinks the executable.
+
 ## Translations
 
 The interface language is chosen in **Settings → General → Language**, and takes

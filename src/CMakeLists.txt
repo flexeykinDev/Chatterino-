@@ -1060,6 +1060,31 @@ if (BUILD_APP)
     # initialiser linked into the final binary.
     chatterino_add_translations(${EXECUTABLE_PROJECT})
 
+    if (WIN32)
+        # A freshly built chatterino.exe cannot start on its own: Qt's DLLs and
+        # plugins are not beside it, and it only ever runs from a shell that
+        # happens to have Qt's bin on PATH. Missing them, Windows raises one
+        # system error per library, which reads like several faults rather than
+        # one missing step.
+        #
+        # This is a target rather than a post-build step because deploying takes
+        # noticeably longer than relinking, and most builds are followed by
+        # running the tests rather than the app.
+        find_program(CHATTERINO_WINDEPLOYQT windeployqt
+            HINTS "${QT6_INSTALL_PREFIX}/bin" "${Qt6_DIR}/../../../bin")
+
+        if (CHATTERINO_WINDEPLOYQT)
+            add_custom_target(deploy_qt
+                COMMAND "${CHATTERINO_WINDEPLOYQT}"
+                        "$<TARGET_FILE:${EXECUTABLE_PROJECT}>"
+                        --release --no-compiler-runtime --no-opengl-sw
+                        --dir "$<TARGET_FILE_DIR:${EXECUTABLE_PROJECT}>"
+                DEPENDS ${EXECUTABLE_PROJECT}
+                COMMENT "Copying the Qt runtime next to chatterino.exe"
+                VERBATIM)
+        endif()
+    endif()
+
     if (CHATTERINO_STATIC_QT_BUILD)
         qt_import_plugins(${EXECUTABLE_PROJECT} INCLUDE_BY_TYPE
             platforms Qt::QXcbIntegrationPlugin
