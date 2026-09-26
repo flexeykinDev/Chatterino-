@@ -25,6 +25,17 @@ typing them by hand in **Settings → Accounts → Add user → Advanced**.
 2. **OAuth Redirect URLs**: `http://localhost:7777`
    Twitch allows plain `http` for `localhost` and nowhere else. It must match
    exactly — a trailing slash is a different URL as far as Twitch is concerned.
+
+   **Do not press "Add" to create a second row.** A blank redirect field fails
+   the console's validation, which then reports *"Redirection URLs must use the
+   HTTPS protocol"* — pointing at the scheme, under a field that has no scheme
+   in it, while the `http://localhost` URL it appears to be about is perfectly
+   acceptable. Leave exactly one row filled in and press Create. This is a bug
+   in the console rather than a rule: Twitch's own
+   [Get Started guide](https://dev.twitch.tv/docs/api/get-started/) still tells
+   you to use `http://localhost:3000`, and a staff reply confirms the blank
+   field is the cause —
+   [discuss.dev.twitch.com](https://discuss.dev.twitch.com/t/unable-to-use-localhost-are-redirect-url-for-oauth-implicit-grant-flow/61951).
 3. **Category**: Chat Bot.
 4. **Client Type**: **Public**.
    This matters. A Confidential client cannot use the implicit grant, and Twitch
