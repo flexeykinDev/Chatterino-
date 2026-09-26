@@ -42,6 +42,46 @@ Leaving `TWITCH_CLIENT_ID` empty disables the check that a token was issued to
 without it, a token minted for any other Twitch app is accepted, letting that
 app's users act as yours.
 
+## Trying it locally
+
+The client talks to nothing by default. To point it at a local server:
+
+```sh
+cd server
+npm install
+npm run build
+node dist/index.js            # listens on 127.0.0.1:8080
+```
+
+Then set **Settings → General → Companion service → Address** to
+`http://127.0.0.1:8080`, and sign in — every route but `/health` needs a Twitch
+token, so an anonymous client sees nothing. See
+[`tools/local-login`](../tools/local-login) for signing in against your own
+Twitch application.
+
+Leaving `TWITCH_CLIENT_ID` unset is fine here, and the server says so on
+startup. It means a token minted for any application is accepted, which is
+convenient locally and unsafe anywhere else.
+
+### Giving it something to show
+
+A fresh registry is empty, so every chatter comes back unmarked — which looks
+exactly like the feature not working. Bans can only be added through
+`POST /v1/bans` by a moderator of the channel in question, which is the right
+rule and useless for a first look, so there is a tool that writes invented ones
+straight into the database:
+
+```sh
+node tools/seed-bans.mjs --offender <your own twitch user id>
+```
+
+Seeding your *own* id is the quickest end-to-end check: your own messages then
+carry the marker. `--clear` removes what it added.
+
+The marker counts bans on channels **other** than the one being read, so a
+seeded chatter shows a marker everywhere except the invented channels the tool
+uses.
+
 ## Authentication
 
 The client never sends a password. It sends the OAuth token it already holds for

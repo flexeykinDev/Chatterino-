@@ -151,10 +151,26 @@ export QT_QPA_PLATFORM=offscreen
 Some tests reach the network (websocket test servers, outbound HTTP) and fail in
 a sandbox that blocks it. They are not indicative of a broken build.
 
+## Signing in
+
+This fork does not use `chatterino.com/client_login`: that hands back a token
+minted for upstream's client id, which belongs to someone else and which the
+companion service rejects once it knows its own application id.
+
+Register a Twitch application of your own and use
+[`tools/local-login`](tools/local-login/README.md), which runs the OAuth flow
+against `localhost` and gives you the four values Chatterino stores — username,
+user id, client id and token. There is no hosted page and nothing leaves the
+machine.
+
 ## Server components
 
 The features that are shared state between users — shadow chat, the
 cross-channel ban registry, presence, typing indicators and the paint library —
 need the companion service in [`server/`](server/README.md). The client works
-without it; those features are simply unavailable. See that README for running
-it and for the API it exposes.
+without it; those features are simply unavailable, and the address setting is
+empty by default, so an untouched install contacts nobody.
+
+That README covers running one locally and seeding it with invented bans, which
+is the only way to see the ban marker without a registry that has real ones in
+it.
