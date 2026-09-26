@@ -29,6 +29,51 @@ GCC 13 or newer standard library, and fails with a parse error inside
 `<concepts>`. That is a Qt bug, not a problem with the source. Distribution
 packages of Qt 6.4 — Ubuntu 24.04's, for instance — will hit it.
 
+### Windows, without the Qt online installer
+
+The online installer wants an account. `aqtinstall` does not, and gives the same
+kit:
+
+```sh
+pip install aqtinstall conan
+aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 \
+    -m qtimageformats qt5compat -O C:/Users/<you>/Qt
+```
+
+`qtsvg` and the Linguist tools are part of the base archive in 6.8.3 — they are
+not separate modules, and asking for them by name fails.
+
+Two things that cost time if you do not know them:
+
+- **`aqt` writes its log to the current directory.** Run it from somewhere
+  writable. Started from `C:\`, it dies with `PermissionError: C:\aqtinstall.log`
+  *after* reporting success, having installed nothing.
+- **Install somewhere you own.** Creating `C:\Qt` needs elevation;
+  `C:\Users\<you>\Qt` does not.
+
+The native dependencies come from conan, as upstream's guide describes, but with
+Ninja rather than NMake:
+
+```sh
+conan install . -s build_type=Release -s compiler.cppstd=20 \
+    -c tools.cmake.cmaketoolchain:generator=Ninja --build=missing --output-folder=build
+```
+
+Conan builds OpenSSL from source on this platform, including its FIPS provider.
+Budget the better part of an hour for that first run; it is cached afterwards.
+
+Configure from a shell that has the MSVC environment (`vcvars64.bat`):
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE=build/conan_toolchain.cmake \
+    -DCMAKE_PREFIX_PATH=C:/Users/<you>/Qt/6.8.3/msvc2022_64 \
+    -DBUILD_TESTS=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+```
+
+`CMAKE_POLICY_VERSION_MINIMUM` is needed with CMake 4: it refuses a
+`cmake_minimum_required` below 3.5, and the bundled WinToast asks for 3.4.
+
 ## Translations
 
 The interface language is chosen in **Settings → General → Language**, and takes
