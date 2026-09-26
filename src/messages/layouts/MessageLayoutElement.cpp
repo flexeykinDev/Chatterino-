@@ -371,6 +371,70 @@ ImageWithBackgroundLayoutElement::ImageWithBackgroundLayoutElement(
 {
 }
 
+//
+// EFFECT IMAGE
+//
+
+EffectImageLayoutElement::EffectImageLayoutElement(
+    MessageElement &creator, ImagePtr image, QSizeF size,
+    EmoteEffectGeometry geometry)
+    : ImageLayoutElement(creator, std::move(image), size)
+    , geometry_(geometry)
+{
+}
+
+void EffectImageLayoutElement::drawTransformed(QPainter &painter, QRectF slot,
+                                               const QPixmap &pixmap)
+{
+    auto transform = emoteEffectTransform(this->geometry_, slot);
+    auto drawn = drawnRectFor(this->geometry_, slot);
+
+    if (transform.isIdentity())
+    {
+        // Stretched but neither turned nor mirrored, so no state to save.
+        painter.drawPixmap(drawn, pixmap, QRectF());
+        return;
+    }
+
+    painter.save();
+    painter.setTransform(transform, true);
+    painter.drawPixmap(drawn, pixmap, QRectF());
+    painter.restore();
+}
+
+void EffectImageLayoutElement::paint(QPainter &painter,
+                                     const MessageColors & /*messageColors*/)
+{
+    if (this->image_ == nullptr)
+    {
+        return;
+    }
+
+    auto pixmap = this->image_->pixmapOrLoad();
+    if (pixmap && !this->image_->animated())
+    {
+        this->drawTransformed(painter, QRectF(this->getRect()), *pixmap);
+    }
+}
+
+bool EffectImageLayoutElement::paintAnimated(QPainter &painter, qreal yOffset)
+{
+    if (this->image_ == nullptr || !this->image_->animated())
+    {
+        return false;
+    }
+
+    if (auto pixmap = this->image_->pixmapOrLoad())
+    {
+        auto rect = QRectF(this->getRect());
+        rect.moveTop(rect.y() + yOffset);
+        this->drawTransformed(painter, rect, *pixmap);
+        return true;
+    }
+
+    return false;
+}
+
 void ImageWithBackgroundLayoutElement::paint(
     QPainter &painter, const MessageColors & /*messageColors*/)
 {

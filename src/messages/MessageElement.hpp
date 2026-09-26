@@ -8,6 +8,7 @@
 #include "messages/ImageSet.hpp"
 #include "messages/Link.hpp"
 #include "messages/MessageColor.hpp"
+#include "providers/emoteeffects/EmoteEffect.hpp"
 #include "providers/links/LinkInfo.hpp"
 #include "singletons/Fonts.hpp"
 
@@ -538,6 +539,10 @@ public:
                         const MessageLayoutContext &ctx) override;
     EmotePtr getEmote() const;
 
+    /// Modifier effects written alongside this emote in the message.
+    void setEffects(EmoteEffectSet effects);
+    const EmoteEffectSet &getEffects() const;
+
     QJsonObject toJson() const override;
     std::string_view type() const override;
     std::unique_ptr<MessageElement> clone() const override;
@@ -554,6 +559,7 @@ private:
     bool usingFallbackColor_ = false;
 
     EmotePtr emote_;
+    EmoteEffectSet effects_;
 };
 
 // A LayeredEmoteElement represents multiple Emotes layered on top of each other.

@@ -5,11 +5,13 @@
 #include "providers/emoteeffects/EmoteEffectParser.hpp"
 
 #include "providers/emoteeffects/EmoteEffect.hpp"
+#include "providers/emoteeffects/EmoteEffectGeometry.hpp"
 #include "providers/emoteeffects/EmoteEffectRegistry.hpp"
 
 #include <gtest/gtest.h>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPointF>
 
 using namespace chatterino;
 
@@ -381,6 +383,180 @@ TEST(ApplyEmoteEffects, PreservesSurroundingText)
 TEST(ApplyEmoteEffects, HandlesAnEmptyMessage)
 {
     EXPECT_TRUE(run({}).empty());
+}
+
+namespace {
+
+EmoteEffectSet setOf(std::initializer_list<EmoteEffectKind> kinds)
+{
+    EmoteEffectSet set;
+    for (auto kind : kinds)
+    {
+        set.add(kind);
+    }
+    return set;
+}
+
+/// A 28x28 emote in a line, which is the shape the maths has to get right.
+const QSizeF BASE{28, 28};
+
+}  // namespace
+
+TEST(EmoteEffectGeometry, LeavesAnUndecoratedEmoteAlone)
+{
+    auto geometry = computeEmoteEffectGeometry(BASE, {});
+
+    EXPECT_EQ(geometry.drawnSize, BASE);
+    EXPECT_EQ(geometry.occupiedSize, BASE);
+    EXPECT_EQ(geometry.rotation, 0);
+    EXPECT_FALSE(geometry.flipHorizontally);
+    EXPECT_FALSE(geometry.flipVertically);
+}
+
+TEST(EmoteEffectGeometry, WideStretchesWidthOnly)
+{
+    auto geometry =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::Wide}));
+
+    EXPECT_EQ(geometry.drawnSize, QSizeF(112, 28));
+    EXPECT_EQ(geometry.occupiedSize, QSizeF(112, 28));
+}
+
+TEST(EmoteEffectGeometry, GrowXIsHalfOfWide)
+{
+    auto geometry =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::GrowX}));
+
+    EXPECT_EQ(geometry.drawnSize, QSizeF(56, 28));
+}
+
+TEST(EmoteEffectGeometry, FlippingDoesNotChangeSize)
+{
+    auto horizontal =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::FlipX}));
+    EXPECT_EQ(horizontal.occupiedSize, BASE);
+    EXPECT_TRUE(horizontal.flipHorizontally);
+    EXPECT_FALSE(horizontal.flipVertically);
+
+    auto vertical =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::FlipY}));
+    EXPECT_EQ(vertical.occupiedSize, BASE);
+    EXPECT_TRUE(vertical.flipVertically);
+}
+
+TEST(EmoteEffectGeometry, RotationSwapsTheSpaceTaken)
+{
+    // A non-square emote makes the swap observable.
+    auto geometry = computeEmoteEffectGeometry(
+        QSizeF(112, 28), setOf({EmoteEffectKind::RotateRight}));
+
+    EXPECT_EQ(geometry.drawnSize, QSizeF(112, 28));
+    EXPECT_EQ(geometry.occupiedSize, QSizeF(28, 112));
+    EXPECT_EQ(geometry.rotation, 90);
+}
+
+TEST(EmoteEffectGeometry, RotatesTheOtherWayForRotateLeft)
+{
+    auto geometry =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::RotateLeft}));
+
+    EXPECT_EQ(geometry.rotation, 270);
+}
+
+TEST(EmoteEffectGeometry, ReportsCollapsedSpacing)
+{
+    EXPECT_FALSE(computeEmoteEffectGeometry(BASE, {}).collapseLeadingSpace);
+    EXPECT_TRUE(
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::NoSpace}))
+            .collapseLeadingSpace);
+}
+
+TEST(EmoteEffectGeometry, NonGeometryEffectsDoNotResize)
+{
+    auto geometry = computeEmoteEffectGeometry(
+        BASE, setOf({EmoteEffectKind::Rainbow, EmoteEffectKind::Shake}));
+
+    EXPECT_EQ(geometry.occupiedSize, BASE);
+    EXPECT_EQ(geometry.rotation, 0);
+}
+
+TEST(EmoteEffectGeometry, StretchingCombinesWithNonGeometryEffects)
+{
+    auto geometry = computeEmoteEffectGeometry(
+        BASE, setOf({EmoteEffectKind::Wide, EmoteEffectKind::Shake}));
+
+    EXPECT_EQ(geometry.drawnSize, QSizeF(112, 28));
+}
+
+TEST(EmoteEffectGeometry, DrawnRectIsCentredInTheOccupiedSpace)
+{
+    auto geometry = computeEmoteEffectGeometry(
+        QSizeF(112, 28), setOf({EmoteEffectKind::RotateRight}));
+
+    // The line gave the emote a 28x112 slot; the emote is drawn 112x28 inside
+    // it and then turned.
+    QRectF target(10, 20, 28, 112);
+    auto drawn = drawnRectFor(geometry, target);
+
+    EXPECT_EQ(drawn.size(), QSizeF(112, 28));
+    EXPECT_EQ(drawn.center(), target.center());
+}
+
+TEST(EmoteEffectTransform, IsIdentityWithoutTurnOrMirror)
+{
+    auto geometry = computeEmoteEffectGeometry(BASE, {});
+    auto transform = emoteEffectTransform(geometry, QRectF(0, 0, 28, 28));
+
+    EXPECT_TRUE(transform.isIdentity());
+}
+
+TEST(EmoteEffectTransform, MirroringKeepsTheEmoteInPlace)
+{
+    auto geometry =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::FlipX}));
+    QRectF target(10, 20, 28, 28);
+    auto transform = emoteEffectTransform(geometry, target);
+
+    // A mirror about the centre swaps the edges rather than moving the emote
+    // somewhere else entirely.
+    EXPECT_EQ(transform.map(target.topLeft()), target.topRight());
+    EXPECT_EQ(transform.map(target.center()), target.center());
+}
+
+TEST(EmoteEffectTransform, MirroringVerticallySwapsTopAndBottom)
+{
+    auto geometry =
+        computeEmoteEffectGeometry(BASE, setOf({EmoteEffectKind::FlipY}));
+    QRectF target(10, 20, 28, 28);
+    auto transform = emoteEffectTransform(geometry, target);
+
+    EXPECT_EQ(transform.map(target.topLeft()), target.bottomLeft());
+}
+
+TEST(EmoteEffectTransform, TurningKeepsTheCentreFixed)
+{
+    auto geometry = computeEmoteEffectGeometry(
+        QSizeF(112, 28), setOf({EmoteEffectKind::RotateRight}));
+    QRectF target(10, 20, 28, 112);
+    auto transform = emoteEffectTransform(geometry, target);
+
+    EXPECT_EQ(transform.map(target.center()), target.center());
+}
+
+TEST(EmoteEffectTransform, TurnedEmoteLandsInsideItsSlot)
+{
+    auto geometry = computeEmoteEffectGeometry(
+        QSizeF(112, 28), setOf({EmoteEffectKind::RotateRight}));
+    QRectF target(10, 20, 28, 112);
+
+    auto drawn = drawnRectFor(geometry, target);
+    auto mapped = emoteEffectTransform(geometry, target).mapRect(drawn);
+
+    // Turning the drawn rectangle should reproduce the slot the line reserved.
+    EXPECT_NEAR(mapped.x(), target.x(), 0.001);
+    EXPECT_NEAR(mapped.y(), target.y(), 0.001);
+    EXPECT_NEAR(mapped.width(), target.width(), 0.001);
+    EXPECT_NEAR(mapped.height(), target.height(), 0.001);
 }
 
 TEST(ApplyEmoteEffects, CarriesTheProviderFlagThrough)

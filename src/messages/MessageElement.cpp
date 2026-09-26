@@ -253,6 +253,16 @@ EmotePtr EmoteElement::getEmote() const
     return this->emote_;
 }
 
+void EmoteElement::setEffects(EmoteEffectSet effects)
+{
+    this->effects_ = std::move(effects);
+}
+
+const EmoteEffectSet &EmoteElement::getEffects() const
+{
+    return this->effects_;
+}
+
 void EmoteElement::addToContainer(MessageLayoutContainer &container,
                                   const MessageLayoutContext &ctx)
 {
@@ -276,7 +286,19 @@ void EmoteElement::addToContainer(MessageLayoutContainer &container,
 
             auto size = image->size() * container.getScale() * emoteScale;
 
-            container.addElement(this->makeImageLayoutElement(image, size));
+            if (this->effects_.empty())
+            {
+                container.addElement(this->makeImageLayoutElement(image, size));
+                return;
+            }
+
+            // Modifier effects stretch or turn the emote, which changes the
+            // room the line has to reserve for it. The dedicated element is
+            // used only when there is something to apply, so an undecorated
+            // emote keeps whatever element its subclass would have made.
+            auto geometry = computeEmoteEffectGeometry(size, this->effects_);
+            container.addElement(new EffectImageLayoutElement(
+                *this, image, geometry.occupiedSize, geometry));
             return;
         }
     }
@@ -335,6 +357,7 @@ std::unique_ptr<MessageElement> EmoteElement::clone() const
 {
     auto elem = std::make_unique<EmoteElement>(this->emote_, this->getFlags(),
                                                this->textColor_);
+    elem->setEffects(this->effects_);
     elem->cloneFrom(*this);
     return elem;
 }

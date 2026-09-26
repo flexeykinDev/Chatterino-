@@ -6,6 +6,7 @@
 
 #include "common/FlagsEnum.hpp"
 #include "messages/Link.hpp"
+#include "providers/emoteeffects/EmoteEffectGeometry.hpp"
 
 #include <pajlada/signals/signalholder.hpp>
 #include <QPen>
@@ -135,6 +136,28 @@ protected:
 
     std::vector<ImagePtr> images_;
     std::vector<QSizeF> sizes_;
+};
+
+/// An emote drawn with modifier effects applied.
+///
+/// The line reserves the space the emote occupies once turned; this draws the
+/// emote at its own size in the middle of that space and then turns or mirrors
+/// it about the centre, so it lands back inside the slot.
+class EffectImageLayoutElement : public ImageLayoutElement
+{
+public:
+    EffectImageLayoutElement(MessageElement &creator, ImagePtr image,
+                             QSizeF size, EmoteEffectGeometry geometry);
+
+protected:
+    void paint(QPainter &painter, const MessageColors &messageColors) override;
+    bool paintAnimated(QPainter &painter, qreal yOffset) override;
+
+private:
+    /// Draws the emote into `slot`, honouring the geometry.
+    void drawTransformed(QPainter &painter, QRectF slot, const QPixmap &pixmap);
+
+    EmoteEffectGeometry geometry_;
 };
 
 class ImageWithBackgroundLayoutElement : public ImageLayoutElement

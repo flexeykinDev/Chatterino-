@@ -409,6 +409,8 @@ set(SOURCE_FILES
 
         providers/emoteeffects/EmoteEffect.cpp
         providers/emoteeffects/EmoteEffect.hpp
+        providers/emoteeffects/EmoteEffectGeometry.cpp
+        providers/emoteeffects/EmoteEffectGeometry.hpp
         providers/emoteeffects/EmoteEffectParser.cpp
         providers/emoteeffects/EmoteEffectParser.hpp
         providers/emoteeffects/EmoteEffectRegistry.cpp
