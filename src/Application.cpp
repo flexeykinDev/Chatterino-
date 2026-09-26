@@ -18,6 +18,7 @@
 #include "controllers/sound/ISoundController.hpp"
 #include "controllers/spellcheck/SpellChecker.hpp"
 #include "providers/bttv/BttvBadges.hpp"
+#include "providers/emoteeffects/EmoteEffectController.hpp"
 #include "providers/bttv/BttvEmotes.hpp"
 #include "providers/ffz/FfzEmotes.hpp"
 #include "providers/links/LinkResolver.hpp"
@@ -162,6 +163,7 @@ Application::Application(Settings &_settings, const Paths &paths,
     , fonts(new Fonts(_settings))
     , logging(new Logging(_settings))
     , emotes(new EmoteController)
+    , emoteEffects(new EmoteEffectController)
     , accounts(new AccountController)
     , eventSub(new eventsub::Controller())
     , hotkeys(new HotkeyController)
@@ -338,6 +340,14 @@ EmoteController *Application::getEmotes()
     assert(this->emotes);
 
     return this->emotes.get();
+}
+
+EmoteEffectController *Application::getEmoteEffects()
+{
+    assertInGuiThread();
+    assert(this->emoteEffects);
+
+    return this->emoteEffects.get();
 }
 
 AccountController *Application::getAccounts()

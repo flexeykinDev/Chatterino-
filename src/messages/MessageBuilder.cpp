@@ -27,6 +27,8 @@
 #include "providers/chatterino/ChatterinoBadges.hpp"
 #include "providers/colors/ColorProvider.hpp"
 #include "providers/emoji/Emojis.hpp"
+#include "providers/emoteeffects/EmoteEffectController.hpp"
+#include "providers/emoteeffects/EmoteEffectParser.hpp"
 #include "providers/ffz/FfzBadges.hpp"
 #include "providers/ffz/FfzEmotes.hpp"
 #include "providers/links/LinkResolver.hpp"
@@ -2824,6 +2826,159 @@ Outcome MessageBuilder::tryAppendEmote(TwitchChannel *twitchChannel,
 }
 
 void MessageBuilder::addWords(
+    QStringView text,
+    const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
+    TextState &state)
+{
+    if (!getSettings()->enableEmoteEffects)
+    {
+        this->addWordsDirectly(text, twitchSpecials, state);
+        return;
+    }
+
+    const auto *effects = getApp()->getEmoteEffects();
+    if (effects == nullptr || effects->registry().empty())
+    {
+        // Nothing could match, so skip the buffering entirely and leave the
+        // common path exactly as it was.
+        this->addWordsDirectly(text, twitchSpecials, state);
+        return;
+    }
+
+    this->addWordsWithEffects(text, twitchSpecials, state, *effects);
+}
+
+void MessageBuilder::addWordsWithEffects(
+    QStringView text,
+    const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
+    TextState &state, const EmoteEffectController &effects)
+{
+    enum class WordKind : std::uint8_t {
+        Text,
+        TwitchEmote,
+        Emoji,
+        Gif,
+    };
+
+    struct BufferedWord {
+        WordKind kind = WordKind::Text;
+        /// The word for Text, the id for Gif.
+        QString text;
+        /// Gif only.
+        QStringView originalText;
+        /// TwitchEmote and Emoji only.
+        EmotePtr emote;
+        bool trailingSpace = true;
+    };
+
+    std::vector<BufferedWord> words;
+    std::vector<EffectToken> tokens;
+
+    auto buffer = [&](BufferedWord word, EffectToken token) {
+        token.sourceIndex = words.size();
+        words.push_back(std::move(word));
+        tokens.push_back(std::move(token));
+    };
+
+    tokenizeWordsWithEmoji(
+        text, twitchSpecials,
+        variant::Overloaded{
+            [&](TokenizedText tok) {
+                auto word = tok.text.toString();
+                // parseEmote only knows the third-party providers, so a hit
+                // here both classifies the word as an emote and tells us whose
+                // it is. Twitch's own emotes never arrive as text.
+                bool isEmote = static_cast<bool>(
+                    parseEmote(state.twitchChannel, EmoteNameView{word}));
+
+                buffer({.kind = WordKind::Text, .text = word},
+                       {
+                           .isEmote = isEmote,
+                           .text = word,
+                           .thirdParty = isEmote,
+                       });
+            },
+            [&](const TokenizedEmoji &tok) {
+                // An emoji belongs to neither provider, so only a code that
+                // applies to any emote reaches it.
+                buffer({.kind = WordKind::Emoji, .emote = tok.emote},
+                       {.isEmote = true, .thirdParty = false});
+            },
+            [&](const TokenizedEmote &tok) {
+                buffer({
+                           .kind = WordKind::TwitchEmote,
+                           .emote = tok.emote,
+                           .trailingSpace = tok.trailingSpace,
+                       },
+                       {.isEmote = true, .thirdParty = false});
+            },
+            [&](const TokenizedGif &gif) {
+                buffer({
+                           .kind = WordKind::Gif,
+                           .text = gif.id,
+                           .originalText = gif.originalText,
+                       },
+                       {.isEmote = false});
+            },
+        });
+
+    auto resolved =
+        applyEmoteEffects(tokens, effects.registry(), effects.entitlements());
+
+    for (const auto &item : resolved)
+    {
+        const auto &word = words[item.sourceIndex];
+
+        switch (word.kind)
+        {
+            case WordKind::Text: {
+                // A code that was consumed is not in `resolved` at all; one
+                // that was restored arrives here as an ordinary word.
+                const MessageElement *previousBack =
+                    this->isEmpty() ? nullptr : &this->back();
+
+                this->addTextOrEmote(state, item.text);
+
+                if (item.effects.empty() || this->isEmpty())
+                {
+                    break;
+                }
+
+                // The word may have become a cheermote, a link or a mention
+                // instead, and a zero-width emote may have been merged into
+                // whatever came before rather than added on its own. Only a
+                // freshly added emote can carry the effects.
+                auto *added = dynamic_cast<EmoteElement *>(&this->back());
+                if (added != nullptr && added != previousBack)
+                {
+                    added->setEffects(item.effects);
+                }
+                break;
+            }
+
+            case WordKind::TwitchEmote: {
+                auto *element = this->emplace<EmoteElement>(
+                    word.emote, MessageElementFlag::Emote, this->textColor_);
+                element->setTrailingSpace(word.trailingSpace);
+                element->setEffects(item.effects);
+                break;
+            }
+
+            case WordKind::Emoji: {
+                auto *element = this->emplace<EmoteElement>(
+                    word.emote, MessageElementFlag::EmojiAll);
+                element->setEffects(item.effects);
+                break;
+            }
+
+            case WordKind::Gif:
+                this->addTwitchGif(word.text, word.originalText);
+                break;
+        }
+    }
+}
+
+void MessageBuilder::addWordsDirectly(
     QStringView text,
     const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
     TextState &state)

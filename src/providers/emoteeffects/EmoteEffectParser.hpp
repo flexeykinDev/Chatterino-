@@ -21,6 +21,10 @@ struct EffectToken {
     /// Whether the emote came from 7TV, BTTV or FFZ rather than Twitch. Only
     /// meaningful when `isEmote` is set.
     bool thirdParty = false;
+    /// Opaque to resolution and carried through to the result, so a caller can
+    /// find what a resolved token came from. Resolution drops consumed
+    /// modifiers and moves restored ones, so position alone cannot be relied on.
+    std::size_t sourceIndex = 0;
 };
 
 /// A word after modifier codes have been resolved.
@@ -30,6 +34,8 @@ struct ResolvedEffectToken {
     /// Carried through from the input, because a modifier written after an
     /// emote still has to know whether its provider covers that emote.
     bool thirdParty = false;
+    /// The index of the input token this came from.
+    std::size_t sourceIndex = 0;
     /// The effects that applied, for an emote. Empty for plain text.
     EmoteEffectSet effects;
 };

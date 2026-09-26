@@ -3,6 +3,7 @@
 #include "Application.hpp"
 #include "common/Args.hpp"
 #include "common/Modes.hpp"
+#include "providers/emoteeffects/EmoteEffectController.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Updates.hpp"
 
@@ -71,6 +72,13 @@ public:
             false &&
             "EmptyApplication::getEmotes was called without being initialized");
         return nullptr;
+    }
+
+    EmoteEffectController *getEmoteEffects() override
+    {
+        // Effect resolution is skipped when there is no catalogue, so a test
+        // that does not care about effects needs no controller at all.
+        return &this->emoteEffects;
     }
 
     AccountController *getAccounts() override
@@ -299,6 +307,7 @@ public:
     }
 
     QTemporaryDir settingsDir;
+    EmoteEffectController emoteEffects;
     Args args_;
     Modes modes_{args_};
     Paths paths_ = {args_, modes_};

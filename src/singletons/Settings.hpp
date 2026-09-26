@@ -457,6 +457,9 @@ public:
     BoolSetting enableEmoteImages = {"/emotes/enableEmoteImages", true};
     BoolSetting animateEmotes = {"/emotes/enableGifAnimations", true};
     BoolSetting enableZeroWidthEmotes = {"/emotes/enableZeroWidthEmotes", true};
+    /// Whether modifier codes written beside an emote decorate it. When off,
+    /// the codes stay in the message as ordinary words.
+    BoolSetting enableEmoteEffects = {"/emotes/enableEmoteEffects", true};
     FloatSetting emoteScale = {"/emotes/scale", 1.f};
     EnumStringSetting<EmoteTooltipScale> emoteTooltipScale = {
         "/emotes/tooltipScale",

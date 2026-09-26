@@ -14,6 +14,7 @@ struct PendingModifier {
     /// Kept verbatim so the word can be restored if it turns out not to modify
     /// anything.
     QString text;
+    std::size_t sourceIndex = 0;
 };
 
 bool appliesTo(const EmoteEffectDefinition &definition, bool thirdPartyEmote)
@@ -25,12 +26,13 @@ bool appliesTo(const EmoteEffectDefinition &definition, bool thirdPartyEmote)
     return thirdPartyEmote;
 }
 
-ResolvedEffectToken asText(QString text)
+ResolvedEffectToken asText(QString text, std::size_t sourceIndex)
 {
     return {
         .isEmote = false,
         .text = std::move(text),
         .thirdParty = false,
+        .sourceIndex = sourceIndex,
         .effects = {},
     };
 }
@@ -53,7 +55,8 @@ std::vector<ResolvedEffectToken> applyEmoteEffects(
     auto releasePending = [&] {
         for (auto &modifier : pending)
         {
-            out.push_back(asText(std::move(modifier.text)));
+            out.push_back(
+                asText(std::move(modifier.text), modifier.sourceIndex));
         }
         pending.clear();
     };
@@ -66,6 +69,7 @@ std::vector<ResolvedEffectToken> applyEmoteEffects(
                 .isEmote = true,
                 .text = token.text,
                 .thirdParty = token.thirdParty,
+                .sourceIndex = token.sourceIndex,
                 .effects = {},
             };
 
@@ -88,7 +92,8 @@ std::vector<ResolvedEffectToken> applyEmoteEffects(
 
             for (auto &modifier : rejected)
             {
-                out.push_back(asText(std::move(modifier.text)));
+                out.push_back(
+                    asText(std::move(modifier.text), modifier.sourceIndex));
             }
 
             out.push_back(std::move(resolved));
@@ -118,13 +123,14 @@ std::vector<ResolvedEffectToken> applyEmoteEffects(
             pending.push_back({
                 .definition = *before,
                 .text = token.text,
+                .sourceIndex = token.sourceIndex,
             });
             continue;
         }
 
         // An ordinary word ends any run of pending modifiers.
         releasePending();
-        out.push_back(asText(token.text));
+        out.push_back(asText(token.text, token.sourceIndex));
     }
 
     releasePending();

@@ -29,6 +29,7 @@ struct Message;
 using MessagePtr = std::shared_ptr<const Message>;
 using MessagePtrMut = std::shared_ptr<Message>;
 
+class EmoteEffectController;
 class MessageElement;
 class TextElement;
 struct Emote;
@@ -323,6 +324,24 @@ private:
     void addWords(QStringView text,
                   const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
                   TextState &state);
+
+    /// Emits each word as it is tokenized. This is the path every message takes
+    /// when no modifier codes could apply.
+    void addWordsDirectly(
+        QStringView text,
+        const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
+        TextState &state);
+
+    /// Tokenizes the whole run before emitting any of it, so a modifier code
+    /// can be matched against the emote beside it.
+    ///
+    /// Whether a word is an emote is only known once it has been looked up, and
+    /// the direct path learns that by emitting it. Resolution has to know first,
+    /// so this classifies the run, resolves the codes, and only then emits.
+    void addWordsWithEffects(
+        QStringView text,
+        const std::vector<TwitchSpecialOccurrence> &twitchSpecials,
+        TextState &state, const EmoteEffectController &effects);
 
     void appendTwitchBadges(Communi::TagsRef tags,
                             TwitchChannel *twitchChannel);
