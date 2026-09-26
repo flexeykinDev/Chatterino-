@@ -15,6 +15,7 @@
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/CrashHandler.hpp"
 #include "singletons/Fonts.hpp"
+#include "singletons/Localization.hpp"
 #include "singletons/NativeMessaging.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Settings.hpp"
@@ -56,6 +57,45 @@ const QStringList ZOOM_LEVELS = {
     "0.5x", "0.6x", "0.7x", "0.8x",  "0.9x",  "Default", "1.2x", "1.4x",
     "1.6x", "1.8x", "2x",   "2.33x", "2.66x", "3x",      "3.5x", "4x",
 };
+
+/// The language names shown in the picker, in the order Localization lists them.
+QStringList languageNames()
+{
+    QStringList names;
+    for (const auto &language : Localization::languages())
+    {
+        names.append(language.nativeName);
+    }
+    return names;
+}
+
+/// Maps a stored language code to the name shown in the picker. An unrecognised
+/// code, from a downgrade or a hand-edited settings file, shows as the system
+/// default, which is what such a code behaves as.
+QString languageNameForCode(const QString &code)
+{
+    for (const auto &language : Localization::languages())
+    {
+        if (language.code == code)
+        {
+            return language.nativeName;
+        }
+    }
+    return Localization::languages().front().nativeName;
+}
+
+/// Maps a picked name back to the code to store.
+QString languageCodeForName(const QString &name)
+{
+    for (const auto &language : Localization::languages())
+    {
+        if (language.nativeName == name)
+        {
+            return language.code;
+        }
+    }
+    return {};
+}
 
 void addKeyboardModifierSetting(GeneralPageView &layout, const QString &title,
                                 EnumSetting<Qt::KeyboardModifier> &setting)
@@ -157,6 +197,18 @@ void GeneralPage::initLayout(GeneralPageView &layout)
             ->conditionallyEnabledBy(themes->themeName, "System")
             ->addTo(layout);
     }
+
+    layout.addDropdown<QString>(
+        "Language", languageNames(), s.language,
+        [](const QString &code) -> std::variant<int, QString> {
+            return languageNameForCode(code);
+        },
+        [](auto args) {
+            return languageCodeForName(args.value);
+        },
+        false,
+        "The language the interface is shown in. Takes effect after a "
+        "restart.");
 
     layout.addDropdown<float>(
         "Zoom", ZOOM_LEVELS, s.uiScale,

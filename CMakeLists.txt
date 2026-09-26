@@ -148,6 +148,8 @@ find_package(Qt${MAJOR_QT_VERSION} REQUIRED
     Network
     Svg
     Concurrent
+    # lrelease, to compile the translation catalogues into the binary.
+    LinguistTools
     )
 if(CHATTERINO_ALLOW_PRIVATE_QT_API)
     # Only exists since 6.10 and prints a warning regarding private headers
@@ -285,6 +287,36 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Generate resource files
 include(cmake/resources/generate_resources.cmake)
 
+###############################
+# Translations
+###############################
+# lrelease runs here, at the top level, rather than against one target, so the
+# compiled catalogues can be embedded in both the application and the test
+# binary. The tests assert that a catalogue really loads and translates, which
+# only works if they carry the catalogues too.
+#
+# English is the source language and so has no catalogue of its own.
+set(CHATTERINO_TS_FILES
+        "${CMAKE_CURRENT_LIST_DIR}/resources/translations/chatterino_ru.ts"
+        )
+
+qt_add_lrelease(
+        TS_FILES ${CHATTERINO_TS_FILES}
+        QM_FILES_OUTPUT_VARIABLE CHATTERINO_QM_FILES
+        LRELEASE_TARGET chatterino_lrelease
+)
+
+# Embeds the compiled catalogues into `target` under ":/translations", which is
+# where Localization looks for them.
+function(chatterino_add_translations target)
+    qt_add_resources(${target} "${target}_translations"
+            PREFIX "/translations"
+            BASE "${CMAKE_BINARY_DIR}"
+            FILES ${CHATTERINO_QM_FILES}
+            )
+    add_dependencies(${target} chatterino_lrelease)
+endfunction()
+
 add_subdirectory(src)
 
 if (BUILD_TESTS OR BUILD_BENCHMARKS)
@@ -299,5 +331,15 @@ endif ()
 if (BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif ()
+
+# Scans the sources for tr() calls and updates the .ts files, via the
+# "update_translations" target. Defined after the subdirectories so the target it
+# scans exists. Obsolete entries are dropped and source locations left out, so a
+# refresh produces a readable diff instead of churning line numbers.
+qt_add_lupdate(
+        SOURCE_TARGETS ${PROJECT_NAME}-lib
+        TS_FILES ${CHATTERINO_TS_FILES}
+        OPTIONS -no-obsolete -locations none
+)
 
 feature_summary(WHAT ALL)

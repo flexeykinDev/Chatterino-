@@ -17,6 +17,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/Emojis.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ExponentialBackoff.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Helpers.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/Localization.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/RatelimitBucket.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Hotkeys.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/UtilTwitch.cpp
@@ -86,6 +87,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE chatterino-lib)
 target_link_libraries(${PROJECT_NAME} PRIVATE chatterino-mocks)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE gtest gmock)
+
+# The translation catalogues, so the localisation tests can assert that a
+# catalogue really loads and translates rather than only that it compiles.
+chatterino_add_translations(${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src")
 

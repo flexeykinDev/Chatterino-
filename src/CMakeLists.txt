@@ -529,6 +529,8 @@ set(SOURCE_FILES
         singletons/Fonts.hpp
         singletons/ImageUploader.cpp
         singletons/ImageUploader.hpp
+        singletons/Localization.cpp
+        singletons/Localization.hpp
         singletons/Logging.cpp
         singletons/Logging.hpp
         singletons/NativeMessaging.cpp
@@ -1020,6 +1022,14 @@ if (BUILD_APP)
     if(CHATTERINO_SANITIZER_SUPPORT)
         add_sanitizers(${EXECUTABLE_PROJECT})
     endif()
+
+    # Embed the translation catalogues, so a build is self-contained and needs no
+    # .qm files installed beside it.
+    #
+    # This attaches to the executable rather than to chatterino-lib because that
+    # is an OBJECT library: a resource added there would not reliably have its
+    # initialiser linked into the final binary.
+    chatterino_add_translations(${EXECUTABLE_PROJECT})
 
     if (CHATTERINO_STATIC_QT_BUILD)
         qt_import_plugins(${EXECUTABLE_PROJECT} INCLUDE_BY_TYPE

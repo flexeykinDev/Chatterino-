@@ -158,6 +158,9 @@ public:
     void setClampedUiScale(float value);
 
     /// Appearance
+    /// Interface language as an ISO 639-1 code. Empty follows the system locale.
+    /// Takes effect on restart, since Qt only retranslates widgets it rebuilds.
+    QStringSetting language = {"/appearance/language", ""};
     BoolSetting showTimestamps = {"/appearance/messages/showTimestamps", true};
     BoolSetting showHeaderTimestamps = {
         "/appearance/messages/header/showTimestamps",

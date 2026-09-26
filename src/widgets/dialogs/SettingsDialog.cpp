@@ -236,25 +236,25 @@ void SettingsDialog::addTabs()
     // Constructors are wrapped in std::function to remove some strain from first time loading.
 
     // clang-format off
-    this->addTab([]{return new GeneralPage;},          "General",        ":/settings/about.svg", SettingsTabId::General);
+    this->addTab([]{return new GeneralPage;},          tr("General"),        ":/settings/about.svg", SettingsTabId::General);
     this->ui_.tabContainer->addSpacing(16);
-    this->addTab([]{return new AccountsPage;},         "Accounts",       ":/settings/accounts.svg", SettingsTabId::Accounts);
-    this->addTab([]{return new NicknamesPage;},        "Nicknames",      ":/settings/accounts.svg");
+    this->addTab([]{return new AccountsPage;},         tr("Accounts"),       ":/settings/accounts.svg", SettingsTabId::Accounts);
+    this->addTab([]{return new NicknamesPage;},        tr("Nicknames"),      ":/settings/accounts.svg");
     this->ui_.tabContainer->addSpacing(16);
-    this->addTab([]{return new CommandPage;},          "Commands",       ":/settings/commands.svg");
-    this->addTab([]{return new HighlightingPage;},     "Highlights",     ":/settings/notifications.svg", SettingsTabId::Highlights);
-    this->addTab([]{return new IgnoresPage;},          "Ignores",        ":/settings/ignore.svg");
-    this->addTab([]{return new FiltersPage;},          "Filters",        ":/settings/filters.svg");
+    this->addTab([]{return new CommandPage;},          tr("Commands"),       ":/settings/commands.svg");
+    this->addTab([]{return new HighlightingPage;},     tr("Highlights"),     ":/settings/notifications.svg", SettingsTabId::Highlights);
+    this->addTab([]{return new IgnoresPage;},          tr("Ignores"),        ":/settings/ignore.svg");
+    this->addTab([]{return new FiltersPage;},          tr("Filters"),        ":/settings/filters.svg");
     this->ui_.tabContainer->addSpacing(16);
-    this->addTab([]{return new KeyboardSettingsPage;}, "Hotkeys",        ":/settings/keybinds.svg");
-    this->addTab([]{return new ModerationPage;},       "Moderation",     ":/settings/moderation.svg", SettingsTabId::Moderation);
-    this->addTab([]{return new NotificationPage;},     "Live Notifications",  ":/settings/notification2.svg");
-    this->addTab([]{return new ExternalToolsPage;},    "External tools", ":/settings/externaltools.svg");
+    this->addTab([]{return new KeyboardSettingsPage;}, tr("Hotkeys"),        ":/settings/keybinds.svg");
+    this->addTab([]{return new ModerationPage;},       tr("Moderation"),     ":/settings/moderation.svg", SettingsTabId::Moderation);
+    this->addTab([]{return new NotificationPage;},     tr("Live Notifications"),  ":/settings/notification2.svg");
+    this->addTab([]{return new ExternalToolsPage;},    tr("External tools"), ":/settings/externaltools.svg");
 #ifdef CHATTERINO_HAVE_PLUGINS
-    this->addTab([]{return new PluginsPage;},          "Plugins",        ":/settings/plugins.svg");
+    this->addTab([]{return new PluginsPage;},          tr("Plugins"),        ":/settings/plugins.svg");
 #endif
     this->ui_.tabContainer->addStretch(1);
-    this->addTab([]{return new AboutPage;},            "About",          ":/settings/about.svg", SettingsTabId::About, Qt::AlignBottom);
+    this->addTab([]{return new AboutPage;},            tr("About"),          ":/settings/about.svg", SettingsTabId::About, Qt::AlignBottom);
     // clang-format on
 }
 

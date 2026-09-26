@@ -12,6 +12,7 @@
 #include "singletons/CrashHandler.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Resources.hpp"
+#include "singletons/Localization.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Updates.hpp"
 #include "util/CombinePath.hpp"
@@ -246,6 +247,9 @@ void runGui(QApplication &a, const Modes &modes, const Paths &paths,
             Settings &settings, const Args &args, Updates &updates)
 {
     initQt(args);
+    // Before any window exists, so the first strings built are already
+    // translated. Widgets already shown would keep the previous language.
+    Localization::apply(settings.language.getValue());
     initResources();
     initSignalHandler();
 
