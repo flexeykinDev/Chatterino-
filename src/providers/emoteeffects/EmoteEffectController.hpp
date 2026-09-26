@@ -25,6 +25,13 @@ public:
     EmoteEffectController(EmoteEffectController &&) = delete;
     EmoteEffectController &operator=(EmoteEffectController &&) = delete;
 
+    /// Fetches the catalogue from `url` and replaces the current one.
+    ///
+    /// An empty url does nothing, leaving the compiled-in codes in place, and
+    /// so does a failed or unparseable response: the client stays usable when
+    /// the endpoint is unreachable, just without whatever codes it adds.
+    virtual void load(const QString &url);
+
     [[nodiscard]] virtual const EmoteEffectRegistry &registry() const;
 
     /// Replaces the catalogue. An empty one disables effect resolution

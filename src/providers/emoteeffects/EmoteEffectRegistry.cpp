@@ -160,24 +160,78 @@ EmoteEffectRegistry EmoteEffectRegistry::builtin()
 {
     EmoteEffectRegistry registry;
 
-    registry.add({
-        .code = "w!",
-        .provider = EmoteEffectProvider::Bttv,
-        .position = EmoteEffectPosition::Before,
-        .scope = EmoteEffectScope::ThirdPartyOnly,
-        .caseSensitive = true,
-        .requirement = EmoteEffectRequirement::None,
-        .kind = EmoteEffectKind::Wide,
-    });
-    registry.add({
-        .code = "ffzSpin",
-        .provider = EmoteEffectProvider::Ffz,
-        .position = EmoteEffectPosition::After,
-        .scope = EmoteEffectScope::Any,
-        .caseSensitive = true,
-        .requirement = EmoteEffectRequirement::FfzSupporter,
-        .kind = EmoteEffectKind::Spin,
-    });
+    // BetterTTV's modifiers are written before the emote and cover third-party
+    // emotes only.
+    struct BttvCode {
+        const char *code;
+        EmoteEffectKind kind;
+    };
+    static constexpr BttvCode BTTV_CODES[]{
+        {"w!", EmoteEffectKind::Wide},
+        {"h!", EmoteEffectKind::FlipX},
+        {"v!", EmoteEffectKind::FlipY},
+        {"z!", EmoteEffectKind::NoSpace},
+        {"c!", EmoteEffectKind::Cursed},
+        {"l!", EmoteEffectKind::RotateLeft},
+        {"r!", EmoteEffectKind::RotateRight},
+        {"p!", EmoteEffectKind::Party},
+        {"s!", EmoteEffectKind::Shake},
+    };
+
+    for (const auto &entry : BTTV_CODES)
+    {
+        registry.add({
+            .code = entry.code,
+            .provider = EmoteEffectProvider::Bttv,
+            .position = EmoteEffectPosition::Before,
+            .scope = EmoteEffectScope::ThirdPartyOnly,
+            .caseSensitive = true,
+            .requirement = EmoteEffectRequirement::None,
+            .kind = entry.kind,
+        });
+    }
+
+    // FrankerFaceZ's are written after the emote and apply to any emote. Most
+    // of them are reserved for people who support FFZ.
+    struct FfzCode {
+        const char *code;
+        EmoteEffectKind kind;
+        EmoteEffectRequirement requirement;
+    };
+    static constexpr FfzCode FFZ_CODES[]{
+        {"ffzW", EmoteEffectKind::GrowX, EmoteEffectRequirement::None},
+        {"ffzX", EmoteEffectKind::FlipX, EmoteEffectRequirement::None},
+        {"ffzY", EmoteEffectKind::FlipY, EmoteEffectRequirement::None},
+        {"ffzCursed", EmoteEffectKind::Cursed, EmoteEffectRequirement::None},
+        {"ffzSpin", EmoteEffectKind::Spin,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzRainbow", EmoteEffectKind::Rainbow,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzHyper", EmoteEffectKind::Hyper,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzJam", EmoteEffectKind::Jam, EmoteEffectRequirement::FfzSupporter},
+        {"ffzBounce", EmoteEffectKind::Bounce,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzSlide", EmoteEffectKind::Slide,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzArrive", EmoteEffectKind::Arrive,
+         EmoteEffectRequirement::FfzSupporter},
+        {"ffzLeave", EmoteEffectKind::Leave,
+         EmoteEffectRequirement::FfzSupporter},
+    };
+
+    for (const auto &entry : FFZ_CODES)
+    {
+        registry.add({
+            .code = entry.code,
+            .provider = EmoteEffectProvider::Ffz,
+            .position = EmoteEffectPosition::After,
+            .scope = EmoteEffectScope::Any,
+            .caseSensitive = true,
+            .requirement = entry.requirement,
+            .kind = entry.kind,
+        });
+    }
 
     return registry;
 }

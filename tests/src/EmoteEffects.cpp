@@ -261,6 +261,72 @@ TEST(EmoteEffectRegistry, HandlesAnEmptyCatalogue)
     EXPECT_TRUE(registry.empty());
 }
 
+TEST(EmoteEffectBuiltin, CarriesBetterTtvCodes)
+{
+    auto registry = EmoteEffectRegistry::builtin();
+
+    auto wide = registry.lookup("w!", EmoteEffectPosition::Before);
+    ASSERT_TRUE(wide.has_value());
+    EXPECT_EQ(wide->kind, EmoteEffectKind::Wide);
+    EXPECT_EQ(wide->scope, EmoteEffectScope::ThirdPartyOnly);
+    EXPECT_EQ(wide->requirement, EmoteEffectRequirement::None);
+
+    // The whole set, so a missing one is noticed.
+    for (const auto *code : {"w!", "h!", "v!", "z!", "c!", "l!", "r!", "p!",
+                             "s!"})
+    {
+        EXPECT_TRUE(registry.lookup(code, EmoteEffectPosition::Before)
+                        .has_value())
+            << "missing BetterTTV code " << code;
+    }
+}
+
+TEST(EmoteEffectBuiltin, CarriesFrankerFaceZCodes)
+{
+    auto registry = EmoteEffectRegistry::builtin();
+
+    auto grow = registry.lookup("ffzW", EmoteEffectPosition::After);
+    ASSERT_TRUE(grow.has_value());
+    EXPECT_EQ(grow->kind, EmoteEffectKind::GrowX);
+    EXPECT_EQ(grow->scope, EmoteEffectScope::Any);
+
+    // Most of FFZ's are reserved for supporters, but the plain transforms are
+    // open to everyone.
+    EXPECT_EQ(registry.lookup("ffzX", EmoteEffectPosition::After)->requirement,
+              EmoteEffectRequirement::None);
+    EXPECT_EQ(
+        registry.lookup("ffzSpin", EmoteEffectPosition::After)->requirement,
+        EmoteEffectRequirement::FfzSupporter);
+}
+
+TEST(EmoteEffectBuiltin, OmitsServiceSpecificCodes)
+{
+    // Codes belonging to a particular service are gated behind that service's
+    // subscription, so they are not compiled in; they arrive only if its
+    // address is configured.
+    auto registry = EmoteEffectRegistry::builtin();
+
+    EXPECT_FALSE(registry.lookup("+spin", EmoteEffectPosition::Before)
+                     .has_value());
+    EXPECT_FALSE(registry.lookup("+wide", EmoteEffectPosition::Before)
+                     .has_value());
+}
+
+TEST(EmoteEffectBuiltin, DistinguishesCodesByPosition)
+{
+    auto registry = EmoteEffectRegistry::builtin();
+
+    // BetterTTV writes its codes before the emote and FFZ after it, so the
+    // same lookup on the wrong side must miss.
+    EXPECT_TRUE(
+        registry.lookup("w!", EmoteEffectPosition::Before).has_value());
+    EXPECT_FALSE(registry.lookup("w!", EmoteEffectPosition::After).has_value());
+    EXPECT_TRUE(
+        registry.lookup("ffzX", EmoteEffectPosition::After).has_value());
+    EXPECT_FALSE(
+        registry.lookup("ffzX", EmoteEffectPosition::Before).has_value());
+}
+
 TEST(ApplyEmoteEffects, LeavesAPlainMessageAlone)
 {
     EXPECT_EQ(describe(run({word("hello"), word("world")})), "hello world");

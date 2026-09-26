@@ -247,6 +247,7 @@ void Application::initialize(Settings &settings, const Paths &paths)
     this->bttvEmotes->loadEmotes();
     this->ffzEmotes->loadEmotes();
     this->seventvEmotes->loadGlobalEmotes();
+    this->emoteEffects->load(settings.emoteEffectsUrl.getValue());
 
     this->twitch->initialize();
 

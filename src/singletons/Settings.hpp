@@ -460,6 +460,11 @@ public:
     /// Whether modifier codes written beside an emote decorate it. When off,
     /// the codes stay in the message as ordinary words.
     BoolSetting enableEmoteEffects = {"/emotes/enableEmoteEffects", true};
+    /// Where to fetch the modifier catalogue from, as the effects endpoint's
+    /// JSON shape. Empty keeps the codes compiled in, which are BetterTTV's and
+    /// FrankerFaceZ's own; a service's additional codes only arrive if its
+    /// address is set here.
+    QStringSetting emoteEffectsUrl = {"/emotes/effectsUrl", ""};
     FloatSetting emoteScale = {"/emotes/scale", 1.f};
     EnumStringSetting<EmoteTooltipScale> emoteTooltipScale = {
         "/emotes/tooltipScale",
