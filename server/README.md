@@ -88,6 +88,45 @@ Error codes: `bad_frame`, `unauthenticated`, `auth_failed`,
 `already_authenticated`, `not_joined`, `restricted`, `too_long`,
 `rate_limited`, `internal`.
 
+## HTTP API
+
+Everything request-shaped is HTTP; everything realtime is the socket. All routes
+but `/health` need an `Authorization` header carrying the caller's Twitch token.
+
+| Method | Route | Requires |
+| --- | --- | --- |
+| `GET` | `/health` | — |
+| `GET` | `/v1/bans/:offenderId?channel=` | any caller |
+| `GET` | `/v1/bans?ids=&channel=` | any caller |
+| `POST` | `/v1/bans` | moderator of `channelId` |
+| `POST` | `/v1/bans/:offenderId/clear` | moderator of `channelId` |
+| `DELETE` | `/v1/bans/:offenderId/clear` | moderator of `channelId` |
+| `POST` | `/v1/shadow/:channelId/restrict` | moderator of the channel |
+| `DELETE` | `/v1/shadow/:channelId/restrict/:userId` | moderator of the channel |
+| `GET` | `/v1/presence?ids=` | any caller |
+| `GET` | `/v1/paints/library?limit=&offset=` | any caller |
+| `GET` | `/v1/paints/mine` | any caller |
+| `POST` | `/v1/paints` | any caller |
+| `PATCH` | `/v1/paints/:paintId` | the paint's author |
+| `DELETE` | `/v1/paints/:paintId` | the paint's author |
+| `PUT` | `/v1/paints/worn` | any caller |
+| `GET` | `/v1/paints/worn?ids=` | any caller |
+
+Batch routes take a comma-separated `ids` list, capped at 200 entries, so
+rendering a chat window costs one request rather than hundreds.
+
+## Moderator authorisation
+
+We do not take the client's word for who moderates what. Moderator status is read
+from Twitch with the caller's own token and the
+`user:read:moderated_channels` scope, then cached briefly — status changes rarely
+compared to how often it is checked, and a stale grant is bounded by the cache
+TTL. A broadcaster always counts as moderating their own channel, since Twitch
+does not list them among their own moderators.
+
+Only a channel's moderators may add to its ban record. Without that rule anyone
+could poison the registry with bans that never happened.
+
 ## Moderation
 
 Shadow chat is not a way around a channel's moderators. A channel's moderators
@@ -107,6 +146,12 @@ src/
     shadow.ts           shadow chat storage and restrictions
     presence.ts         presence states and typing indicators
     globalBans.ts       cross-channel ban registry
+    moderation.ts       moderator authorisation via Twitch
+    paints.ts           shared nickname paint library
+    users.ts            accounts we have seen
+  hub.ts                socket ownership, rooms and frame routing
+  http.ts               HTTP routes
+  index.ts              composition root
 test/                   one file per module
 ```
 
@@ -128,10 +173,13 @@ is in force again, and the channel that vouched has evidently changed its mind.
 
 ## Status
 
-Implemented and tested: configuration, schema and migrations, Twitch token
-validation, frame validation, shadow chat storage and moderation, presence
-states, typing indicators, and the cross-channel ban registry with its relay and
-revalidation support.
+The service is complete and runnable: 213 tests cover every module, the socket
+routing path and every HTTP route including its authorisation rules.
 
-Not yet implemented: the HTTP and WebSocket entry point wiring these together,
-and the paint library.
+Still to do:
+
+- A background job that walks the revalidation queue and calls Twitch to confirm
+  whether old bans still hold. The storage and queue exist; nothing drives them
+  yet, so bans stay active until something reports otherwise.
+- Profile asset storage (custom avatars and backgrounds).
+- The desktop client does not talk to any of this yet.
