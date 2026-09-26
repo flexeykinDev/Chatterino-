@@ -18,6 +18,10 @@ class EditableModelView;
 
 class HighlightingPage : public SettingsPage
 {
+    // Without this, tr() here resolves against SettingsPage's context and finds
+    // no translations.
+    Q_OBJECT
+
 public:
     HighlightingPage();
 

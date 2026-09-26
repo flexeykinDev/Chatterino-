@@ -40,6 +40,10 @@ enum class SettingsDialogPreference {
 
 class SettingsDialog : public BaseWindow
 {
+    // Without this, tr() here resolves against BaseWindow's context and finds
+    // no translations, silently leaving this window in English.
+    Q_OBJECT
+
     SettingsDialog(QWidget *parent);
 
 public:

@@ -4,8 +4,13 @@
 
 #include "singletons/Localization.hpp"
 
+#include "widgets/dialogs/SettingsDialog.hpp"
+#include "widgets/settingspages/HighlightingPage.hpp"
+#include "widgets/settingspages/NotificationPage.hpp"
+
 #include <gtest/gtest.h>
 #include <QCoreApplication>
+#include <QMetaObject>
 #include <QString>
 
 using namespace chatterino;
@@ -118,6 +123,36 @@ TEST_F(LocalizationTest, FallingBackClearsAPreviousTranslation)
     // language installed.
     EXPECT_EQ(Localization::apply("de"), "en");
     EXPECT_EQ(translatedSettingsTab(), "General");
+}
+
+/// A class whose strings are translated must carry Q_OBJECT, so that tr()
+/// resolves against its own name. Without it, tr() silently falls back to the
+/// base class's context, finds nothing, and the window stays in English while
+/// the catalogue itself looks perfectly healthy.
+///
+/// These assertions are what catch that: translating through a hardcoded
+/// context string cannot, because it bypasses the very lookup that breaks.
+TEST_F(LocalizationTest, TranslatedClassesDeclareTheirOwnContext)
+{
+    EXPECT_STREQ(SettingsDialog::staticMetaObject.className(),
+                 "chatterino::SettingsDialog");
+    EXPECT_STREQ(HighlightingPage::staticMetaObject.className(),
+                 "chatterino::HighlightingPage");
+    EXPECT_STREQ(NotificationPage::staticMetaObject.className(),
+                 "chatterino::NotificationPage");
+}
+
+/// Every context the catalogue carries must correspond to a real class name, or
+/// its entries can never be found at runtime.
+TEST_F(LocalizationTest, CatalogueContextsMatchRealClasses)
+{
+    Localization::apply("ru");
+
+    // If SettingsDialog's context were wrong, this would return the source
+    // string rather than the translation.
+    EXPECT_EQ(QCoreApplication::translate(
+                  SettingsDialog::staticMetaObject.className(), "General"),
+              QString::fromUtf8("Общие"));
 }
 
 TEST_F(LocalizationTest, CurrentReportsWhatWasApplied)
