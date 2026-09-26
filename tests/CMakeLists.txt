@@ -19,6 +19,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/EmoteEffects.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Helpers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Localization.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/TabAvatarLayout.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/RatelimitBucket.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Hotkeys.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/UtilTwitch.cpp

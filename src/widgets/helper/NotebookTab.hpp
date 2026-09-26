@@ -19,6 +19,7 @@ namespace chatterino {
 inline constexpr int NOTEBOOK_TAB_HEIGHT = 28;
 
 class SplitContainer;
+struct TwitchUser;
 
 class NotebookTab : public Button
 {
@@ -132,6 +133,21 @@ private:
 
     int normalTabWidthForHeight(int height) const;
 
+    /// The single Twitch channel this tab stands for, or an empty string when
+    /// it holds none, or several.
+    QString singleTwitchChannelName() const;
+
+    /// Looks up the profile picture for that channel, if it has not been looked
+    /// up already.
+    void refreshAvatar();
+
+    /// Whether this tab draws a picture rather than a name. False until the
+    /// picture has actually loaded, so the tab never shows an empty circle.
+    bool showsAvatar() const;
+
+    /// Draws the picture, its ring and its unread dot.
+    void paintAvatar(QPainter &painter, const QPixmap &pixmap);
+
     bool shouldMessageHighlight(const ChannelView &channelViewSource) const;
 
     using HighlightSources =
@@ -166,6 +182,20 @@ private:
 
     bool isLive_{};
     bool isRerun_{};
+
+    /// The channel's profile picture, once resolved. Null while it is being
+    /// looked up, or when this tab does not stand for a single Twitch channel.
+    ImagePtr avatar_;
+    /// The channel the avatar was looked up for, so a tab that changes channel
+    /// does not keep the old picture.
+    QString avatarChannel_;
+    /// Held rather than re-resolved: the provider fills the record in once its
+    /// request comes back, so asking again every repaint would be a request per
+    /// frame.
+    std::shared_ptr<TwitchUser> avatarUser_;
+    /// Whether the last repaint drew a picture, so that the tab can be resized
+    /// when that changes; its width follows its name or its picture.
+    bool wasShowingAvatar_{};
 
     int growWidth_ = 0;
     QSize computedMinimumSize;

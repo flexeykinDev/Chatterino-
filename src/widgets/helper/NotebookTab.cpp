@@ -4,12 +4,17 @@
 
 #include "widgets/helper/NotebookTab.hpp"
 
+#include "widgets/helper/TabAvatarLayout.hpp"
+
 #include "Application.hpp"
 #include "common/Channel.hpp"
 #include "common/Common.hpp"
 #include "common/QLogging.hpp"
 #include "controllers/hotkeys/HotkeyCategory.hpp"
 #include "controllers/hotkeys/HotkeyController.hpp"
+#include "messages/Image.hpp"
+#include "providers/twitch/TwitchChannel.hpp"
+#include "providers/twitch/TwitchUsers.hpp"
 #include "singletons/Fonts.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Theme.hpp"
@@ -33,6 +38,8 @@
 #include <QLineEdit>
 #include <QMimeData>
 #include <QPainter>
+#include <QPainterPath>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -405,8 +412,148 @@ void NotebookTab::growWidth(int width)
     this->growWidth_ = width;
 }
 
+
+QString NotebookTab::singleTwitchChannelName() const
+{
+    auto *container = dynamic_cast<SplitContainer *>(this->page);
+    if (container == nullptr)
+    {
+        return {};
+    }
+
+    auto splits = container->getSplits();
+    // A tab holding several chats has no one picture to show, so it keeps its
+    // name.
+    if (splits.size() != 1)
+    {
+        return {};
+    }
+
+    auto channel = splits.front()->getChannel();
+    if (!channel || !channel->isTwitchChannel())
+    {
+        return {};
+    }
+
+    return channel->getName();
+}
+
+void NotebookTab::refreshAvatar()
+{
+    auto name = this->singleTwitchChannelName();
+    if (name == this->avatarChannel_)
+    {
+        // The record is filled in when the provider's request returns, so the
+        // picture may only now have become available.
+        if (!this->avatar_ && this->avatarUser_ &&
+            !this->avatarUser_->profilePictureUrl.isEmpty())
+        {
+            this->avatar_ = Image::fromUrl(
+                {this->avatarUser_->profilePictureUrl}, this->scale());
+        }
+        return;
+    }
+
+    // The tab now stands for something else, so the old picture must go even if
+    // no new one can be found.
+    this->avatarChannel_ = name;
+    this->avatar_.reset();
+    this->avatarUser_.reset();
+
+    if (name.isEmpty())
+    {
+        return;
+    }
+
+    auto *container = dynamic_cast<SplitContainer *>(this->page);
+    if (container == nullptr)
+    {
+        return;
+    }
+
+    auto splits = container->getSplits();
+    if (splits.empty())
+    {
+        return;
+    }
+
+    auto twitch =
+        dynamic_cast<TwitchChannel *>(splits.front()->getChannel().get());
+    if (twitch == nullptr || twitch->roomId().isEmpty())
+    {
+        return;
+    }
+
+    this->avatarUser_ =
+        getApp()->getTwitchUsers()->resolveID(UserId{twitch->roomId()});
+}
+
+bool NotebookTab::showsAvatar() const
+{
+    if (!getSettings()->tabAvatars)
+    {
+        return false;
+    }
+
+    // Only once the picture has actually arrived: showing an empty circle
+    // while it loads would be worse than showing the name.
+    return this->avatar_ && this->avatar_->pixmapOrLoad().has_value();
+}
+
+void NotebookTab::paintAvatar(QPainter &painter, const QPixmap &pixmap)
+{
+    auto layout = computeTabAvatarLayout(QRectF(this->rect()), this->scale());
+
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    // A live channel earns a ring; an idle one is dimmed instead, so a glance
+    // at the row says who is on air without reading anything.
+    if (!this->isLive_)
+    {
+        painter.setOpacity(0.55);
+    }
+
+    {
+        QPainterPath clip;
+        clip.addEllipse(layout.avatar);
+
+        painter.save();
+        painter.setClipPath(clip);
+        painter.drawPixmap(layout.avatar, pixmap, QRectF(pixmap.rect()));
+        painter.restore();
+    }
+
+    painter.setOpacity(1.0);
+
+    if (this->isLive_)
+    {
+        painter.setPen(QPen(this->theme->tabs.liveIndicator, layout.ringWidth));
+        painter.setBrush(Qt::NoBrush);
+        painter.drawEllipse(layout.ring);
+    }
+
+    if (this->highlightState_ != HighlightState::None && this->highlightEnabled_)
+    {
+        const auto &colors =
+            this->highlightState_ == HighlightState::Highlighted
+                ? this->theme->tabs.highlighted
+                : this->theme->tabs.newMessage;
+
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(colors.backgrounds.regular);
+        painter.drawEllipse(layout.badge);
+    }
+}
+
 int NotebookTab::normalTabWidthForHeight(int height) const
 {
+    // An avatar tab is a circle in a square, so its width follows its
+    // height rather than the length of a name it is not showing.
+    if (this->showsAvatar())
+    {
+        return height;
+    }
+
     float scale = this->scale();
     int width = 0;
 
@@ -1008,6 +1155,24 @@ void NotebookTab::paintEvent(QPaintEvent *)
     // set the pen color
     painter.setPen(colors.text);
 
+    // Resolved lazily: the picture needs a room id, which is not known until
+    // the channel has connected.
+    this->refreshAvatar();
+    const bool avatarMode = this->showsAvatar();
+
+    if (avatarMode != this->wasShowingAvatar_)
+    {
+        this->wasShowingAvatar_ = avatarMode;
+
+        // The width follows the name or the picture, and the picture only
+        // arrives part way through a repaint. Resizing is deferred out of the
+        // paint that noticed it, since laying the row out again from inside one
+        // is asking for trouble.
+        QTimer::singleShot(0, this, [this] {
+            this->refreshAndCommitSize(true);
+        });
+    }
+
     float compactDivider = getCompactDivider(getSettings()->tabStyle);
     // set area for text
     int rectW =
@@ -1033,10 +1198,22 @@ void NotebookTab::paintEvent(QPaintEvent *)
 
     QTextOption option(alignment);
     option.setWrapMode(QTextOption::NoWrap);
-    painter.drawText(textRect, this->getTitle(), option);
+    if (avatarMode)
+    {
+        auto pixmap = this->avatar_->pixmapOrLoad();
+        if (pixmap)
+        {
+            this->paintAvatar(painter, *pixmap);
+        }
+    }
+    else
+    {
+        painter.drawText(textRect, this->getTitle(), option);
+    }
 
-    // draw close x
-    if (this->shouldDrawXButton())
+    // draw close x. A cross over a circle reads as clutter, so an avatar tab
+    // is closed from its menu instead.
+    if (!avatarMode && this->shouldDrawXButton())
     {
         painter.setRenderHint(QPainter::Antialiasing, false);
 

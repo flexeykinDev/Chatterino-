@@ -820,6 +820,8 @@ set(SOURCE_FILES
         widgets/helper/ScrollbarHighlight.hpp
         widgets/helper/SearchPopup.cpp
         widgets/helper/SearchPopup.hpp
+        widgets/helper/TabAvatarLayout.cpp
+        widgets/helper/TabAvatarLayout.hpp
         widgets/helper/SettingsDialogTab.cpp
         widgets/helper/SettingsDialogTab.hpp
         widgets/helper/SvgWidget.cpp

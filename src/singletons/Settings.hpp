@@ -256,6 +256,10 @@ public:
         "/appearance/messages/alternateMessageBackground", false};
     FloatSetting boldScale = {"/appearance/boldScale", 63};
     BoolSetting showTabCloseButton = {"/appearance/showTabCloseButton", true};
+    /// Show a Twitch channel's profile picture on its tab instead of its name.
+    /// Tabs become square, and a tab whose channel has no picture, or which is
+    /// not a single Twitch channel, keeps its name.
+    BoolSetting tabAvatars = {"/appearance/tabAvatars", false};
     BoolSetting showTabLive = {"/appearance/showTabLiveButton", true};
     EnumStringSetting<TabStyle> tabStyle = {
         "/appearance/tabStyle",
