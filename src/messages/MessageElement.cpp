@@ -298,7 +298,8 @@ void EmoteElement::addToContainer(MessageLayoutContainer &container,
             // emote keeps whatever element its subclass would have made.
             auto geometry = computeEmoteEffectGeometry(size, this->effects_);
             container.addElement(new EffectImageLayoutElement(
-                *this, image, geometry.occupiedSize, geometry));
+                *this, image, geometry.occupiedSize, geometry,
+                this->effects_));
             return;
         }
     }

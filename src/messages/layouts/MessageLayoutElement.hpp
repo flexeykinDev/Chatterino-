@@ -6,6 +6,7 @@
 
 #include "common/FlagsEnum.hpp"
 #include "messages/Link.hpp"
+#include "providers/emoteeffects/EmoteEffectAnimation.hpp"
 #include "providers/emoteeffects/EmoteEffectGeometry.hpp"
 
 #include <pajlada/signals/signalholder.hpp>
@@ -147,17 +148,25 @@ class EffectImageLayoutElement : public ImageLayoutElement
 {
 public:
     EffectImageLayoutElement(MessageElement &creator, ImagePtr image,
-                             QSizeF size, EmoteEffectGeometry geometry);
+                             QSizeF size, EmoteEffectGeometry geometry,
+                             EmoteEffectSet effects);
 
 protected:
     void paint(QPainter &painter, const MessageColors &messageColors) override;
     bool paintAnimated(QPainter &painter, qreal yOffset) override;
 
 private:
-    /// Draws the emote into `slot`, honouring the geometry.
-    void drawTransformed(QPainter &painter, QRectF slot, const QPixmap &pixmap);
+    /// Whether this has to be redrawn every frame, either because the emote
+    /// itself moves or because an effect does.
+    [[nodiscard]] bool needsRepainting() const;
+
+    /// Draws the emote into `slot` with `animation` applied on top of the
+    /// geometry.
+    void drawTransformed(QPainter &painter, QRectF slot, const QPixmap &pixmap,
+                         const EmoteEffectAnimation &animation);
 
     EmoteEffectGeometry geometry_;
+    EmoteEffectSet effects_;
 };
 
 class ImageWithBackgroundLayoutElement : public ImageLayoutElement

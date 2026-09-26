@@ -5,13 +5,18 @@
 #include "providers/emoteeffects/EmoteEffectParser.hpp"
 
 #include "providers/emoteeffects/EmoteEffect.hpp"
+#include "providers/emoteeffects/EmoteEffectAnimation.hpp"
 #include "providers/emoteeffects/EmoteEffectGeometry.hpp"
 #include "providers/emoteeffects/EmoteEffectRegistry.hpp"
 
 #include <gtest/gtest.h>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QImage>
+#include <QPixmap>
 #include <QPointF>
+
+#include <cmath>
 
 using namespace chatterino;
 
@@ -623,6 +628,265 @@ TEST(EmoteEffectTransform, TurnedEmoteLandsInsideItsSlot)
     EXPECT_NEAR(mapped.y(), target.y(), 0.001);
     EXPECT_NEAR(mapped.width(), target.width(), 0.001);
     EXPECT_NEAR(mapped.height(), target.height(), 0.001);
+}
+
+namespace {
+
+/// A 28px emote, matching the geometry tests.
+constexpr qreal HEIGHT = 28;
+
+EmoteEffectAnimation animate(std::initializer_list<EmoteEffectKind> kinds,
+                             qreal seconds)
+{
+    return computeEmoteEffectAnimation(setOf(kinds), seconds, HEIGHT);
+}
+
+}  // namespace
+
+TEST(EmoteEffectAnimation, ClassifiesWhichEffectsMove)
+{
+    EXPECT_TRUE(isTimeVaryingEffect(EmoteEffectKind::Spin));
+    EXPECT_TRUE(isTimeVaryingEffect(EmoteEffectKind::Rainbow));
+    EXPECT_TRUE(isTimeVaryingEffect(EmoteEffectKind::Bounce));
+
+    // Cursed only darkens, so it can be drawn once.
+    EXPECT_FALSE(isTimeVaryingEffect(EmoteEffectKind::Cursed));
+    // Geometry is fixed.
+    EXPECT_FALSE(isTimeVaryingEffect(EmoteEffectKind::Wide));
+    EXPECT_FALSE(isTimeVaryingEffect(EmoteEffectKind::RotateLeft));
+}
+
+TEST(EmoteEffectAnimation, ReportsWhetherASetNeedsRepainting)
+{
+    EXPECT_FALSE(hasTimeVaryingEffect(setOf({EmoteEffectKind::Wide})));
+    EXPECT_FALSE(hasTimeVaryingEffect(setOf({EmoteEffectKind::Cursed})));
+    EXPECT_TRUE(hasTimeVaryingEffect(
+        setOf({EmoteEffectKind::Wide, EmoteEffectKind::Shake})));
+}
+
+TEST(EmoteEffectAnimation, LeavesAnUndecoratedEmoteStill)
+{
+    auto animation = animate({}, 12.34);
+
+    EXPECT_EQ(animation.offset, QPointF());
+    EXPECT_EQ(animation.rotation, 0);
+    EXPECT_EQ(animation.scale, 1);
+    EXPECT_EQ(animation.tintStrength, 0);
+    EXPECT_FALSE(animation.isAnimated());
+}
+
+TEST(EmoteEffectAnimation, DependsOnlyOnTheClock)
+{
+    // The same instant must give the same result, so that two viewers, or two
+    // repaints, agree.
+    auto first = animate({EmoteEffectKind::Spin}, 7.5);
+    auto second = animate({EmoteEffectKind::Spin}, 7.5);
+
+    EXPECT_EQ(first.rotation, second.rotation);
+}
+
+TEST(EmoteEffectAnimation, SpinTurnsOncePerCycle)
+{
+    EXPECT_NEAR(animate({EmoteEffectKind::Spin}, 0).rotation, 0, 0.001);
+    EXPECT_NEAR(animate({EmoteEffectKind::Spin}, 1.5).rotation, 180, 0.001);
+
+    // A whole cycle later it is back where it started.
+    EXPECT_NEAR(animate({EmoteEffectKind::Spin}, 3.0).rotation, 0, 0.001);
+    EXPECT_NEAR(animate({EmoteEffectKind::Spin}, 4.5).rotation, 180, 0.001);
+}
+
+TEST(EmoteEffectAnimation, SpinIsContinuousAcrossTheCycleBoundary)
+{
+    // Just before the wrap the emote is nearly all the way round, so the jump
+    // back to zero is a full turn rather than a visible snap.
+    EXPECT_GT(animate({EmoteEffectKind::Spin}, 2.99).rotation, 358);
+}
+
+TEST(EmoteEffectAnimation, JamRocksWithoutTurningFullyRound)
+{
+    for (qreal t = 0; t < 2.0; t += 0.01)
+    {
+        auto rotation = animate({EmoteEffectKind::Jam}, t).rotation;
+        EXPECT_LE(std::abs(rotation), 12.001) << "at t=" << t;
+    }
+}
+
+TEST(EmoteEffectAnimation, BounceOnlyLiftsTheEmote)
+{
+    // Downward would push it into the line below, so a bounce goes up only.
+    for (qreal t = 0; t < 1.0; t += 0.01)
+    {
+        EXPECT_LE(animate({EmoteEffectKind::Bounce}, t).offset.y(), 0.001)
+            << "at t=" << t;
+    }
+}
+
+TEST(EmoteEffectAnimation, BounceTouchesDownEachCycle)
+{
+    EXPECT_NEAR(animate({EmoteEffectKind::Bounce}, 0).offset.y(), 0, 0.001);
+    EXPECT_NEAR(animate({EmoteEffectKind::Bounce}, 0.5).offset.y(), 0, 0.001);
+
+    // And reaches its peak in between.
+    EXPECT_LT(animate({EmoteEffectKind::Bounce}, 0.25).offset.y(), -4);
+}
+
+TEST(EmoteEffectAnimation, ShakeStaysWithinItsAmplitude)
+{
+    const qreal limit = (HEIGHT * 0.07) + 0.001;
+
+    for (qreal t = 0; t < 1.0; t += 0.005)
+    {
+        auto offset = animate({EmoteEffectKind::Shake}, t).offset;
+        EXPECT_LE(std::abs(offset.x()), limit) << "at t=" << t;
+        EXPECT_LE(std::abs(offset.y()), limit) << "at t=" << t;
+    }
+}
+
+TEST(EmoteEffectAnimation, DisplacementScalesWithTheEmote)
+{
+    auto small = computeEmoteEffectAnimation(setOf({EmoteEffectKind::Bounce}),
+                                             0.25, 28);
+    auto large = computeEmoteEffectAnimation(setOf({EmoteEffectKind::Bounce}),
+                                             0.25, 56);
+
+    // Twice the emote, twice the movement, so it looks the same when zoomed.
+    EXPECT_NEAR(large.offset.y(), small.offset.y() * 2, 0.001);
+}
+
+TEST(EmoteEffectAnimation, ColourEffectsTintTheEmote)
+{
+    auto rainbow = animate({EmoteEffectKind::Rainbow}, 0.5);
+
+    EXPECT_TRUE(rainbow.tint.isValid());
+    EXPECT_GT(rainbow.tintStrength, 0);
+    EXPECT_LE(rainbow.tintStrength, 1);
+}
+
+TEST(EmoteEffectAnimation, RainbowRunsThroughTheHues)
+{
+    auto start = animate({EmoteEffectKind::Rainbow}, 0).tint;
+    auto middle = animate({EmoteEffectKind::Rainbow}, 1.0).tint;
+
+    EXPECT_NE(start.hue(), middle.hue());
+
+    // A whole cycle later the colour comes back round.
+    auto wrapped = animate({EmoteEffectKind::Rainbow}, 2.0).tint;
+    EXPECT_EQ(start.hue(), wrapped.hue());
+}
+
+TEST(EmoteEffectAnimation, CursedHoldsOneColour)
+{
+    auto early = animate({EmoteEffectKind::Cursed}, 0.1);
+    auto later = animate({EmoteEffectKind::Cursed}, 9.9);
+
+    EXPECT_EQ(early.tint, later.tint);
+    EXPECT_GT(early.tintStrength, 0);
+}
+
+TEST(EmoteEffectAnimation, HyperBothShakesAndTints)
+{
+    auto animation = animate({EmoteEffectKind::Hyper}, 0.03);
+
+    EXPECT_TRUE(animation.tint.isValid());
+    EXPECT_NE(animation.offset, QPointF());
+}
+
+TEST(EmoteEffectAnimation, CombinesMovementWithColour)
+{
+    auto animation =
+        animate({EmoteEffectKind::Spin, EmoteEffectKind::Rainbow}, 0.75);
+
+    EXPECT_NE(animation.rotation, 0);
+    EXPECT_TRUE(animation.tint.isValid());
+    EXPECT_TRUE(animation.isAnimated());
+}
+
+TEST(EmoteEffectAnimation, IgnoresEffectsItDoesNotPlay)
+{
+    // Arrive and leave describe entering and departing, which needs a start
+    // time the layout does not have. They are accepted and left still rather
+    // than looped, which would be the wrong behaviour.
+    auto animation = animate({EmoteEffectKind::Arrive}, 1.0);
+
+    EXPECT_FALSE(animation.isAnimated());
+}
+
+namespace {
+
+/// A pixmap whose left half is an opaque white "emote" and whose right half is
+/// transparent, so a tint that leaks past the shape is visible.
+QPixmap halfTransparentPixmap()
+{
+    QImage image(10, 10, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+
+    for (int y = 0; y < 10; y += 1)
+    {
+        for (int x = 0; x < 5; x += 1)
+        {
+            image.setPixelColor(x, y, QColor(255, 255, 255));
+        }
+    }
+
+    return QPixmap::fromImage(image);
+}
+
+}  // namespace
+
+TEST(EmoteEffectTint, LeavesTransparentPixelsAlone)
+{
+    auto tinted = tintedPixmap(halfTransparentPixmap(), QColor(255, 0, 0), 1.0);
+    auto image = tinted.toImage();
+
+    // The whole point: colouring the emote must not colour the space around it,
+    // or every tinted emote would sit in a coloured box.
+    for (int y = 0; y < 10; y += 1)
+    {
+        for (int x = 5; x < 10; x += 1)
+        {
+            EXPECT_EQ(image.pixelColor(x, y).alpha(), 0)
+                << "leaked at " << x << "," << y;
+        }
+    }
+}
+
+TEST(EmoteEffectTint, ColoursTheEmoteItself)
+{
+    auto tinted = tintedPixmap(halfTransparentPixmap(), QColor(255, 0, 0), 1.0);
+    auto image = tinted.toImage();
+
+    auto colour = image.pixelColor(0, 0);
+    EXPECT_EQ(colour.alpha(), 255);
+    EXPECT_GT(colour.red(), colour.blue());
+    EXPECT_GT(colour.red(), colour.green());
+}
+
+TEST(EmoteEffectTint, StrengthControlsHowMuchColourShows)
+{
+    auto source = halfTransparentPixmap();
+
+    auto light = tintedPixmap(source, QColor(255, 0, 0), 0.25).toImage();
+    auto heavy = tintedPixmap(source, QColor(255, 0, 0), 1.0).toImage();
+
+    // The source is white, so a stronger red tint leaves less blue behind.
+    EXPECT_GT(light.pixelColor(0, 0).blue(), heavy.pixelColor(0, 0).blue());
+}
+
+TEST(EmoteEffectTint, ReturnsTheSourceWhenThereIsNothingToApply)
+{
+    auto source = halfTransparentPixmap();
+
+    EXPECT_EQ(tintedPixmap(source, QColor(255, 0, 0), 0).toImage(),
+              source.toImage());
+    EXPECT_EQ(tintedPixmap(source, QColor(), 1.0).toImage(), source.toImage());
+}
+
+TEST(EmoteEffectTint, KeepsTheSourceSize)
+{
+    auto source = halfTransparentPixmap();
+    auto tinted = tintedPixmap(source, QColor(0, 255, 0), 0.5);
+
+    EXPECT_EQ(tinted.size(), source.size());
 }
 
 TEST(ApplyEmoteEffects, CarriesTheProviderFlagThrough)

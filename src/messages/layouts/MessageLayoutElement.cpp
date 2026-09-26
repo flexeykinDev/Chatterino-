@@ -13,6 +13,7 @@
 #include "util/DebugCount.hpp"
 
 #include <QDebug>
+#include <QDateTime>
 #include <QPainter>
 #include <QPainterPath>
 
@@ -377,62 +378,130 @@ ImageWithBackgroundLayoutElement::ImageWithBackgroundLayoutElement(
 
 EffectImageLayoutElement::EffectImageLayoutElement(
     MessageElement &creator, ImagePtr image, QSizeF size,
-    EmoteEffectGeometry geometry)
+    EmoteEffectGeometry geometry, EmoteEffectSet effects)
     : ImageLayoutElement(creator, std::move(image), size)
     , geometry_(geometry)
+    , effects_(std::move(effects))
 {
 }
 
-void EffectImageLayoutElement::drawTransformed(QPainter &painter, QRectF slot,
-                                               const QPixmap &pixmap)
+bool EffectImageLayoutElement::needsRepainting() const
 {
-    auto transform = emoteEffectTransform(this->geometry_, slot);
+    if (this->image_ != nullptr && this->image_->animated())
+    {
+        return true;
+    }
+
+    // A still emote with a moving effect has to claim to be animated, or the
+    // view will draw it once into its buffer and never come back.
+    return hasTimeVaryingEffect(this->effects_);
+}
+
+void EffectImageLayoutElement::drawTransformed(
+    QPainter &painter, QRectF slot, const QPixmap &pixmap,
+    const EmoteEffectAnimation &animation)
+{
     auto drawn = drawnRectFor(this->geometry_, slot);
 
-    if (transform.isIdentity())
+    auto transform = emoteEffectTransform(this->geometry_, slot);
+    if (animation.rotation != 0)
     {
-        // Stretched but neither turned nor mirrored, so no state to save.
+        // Turn about the same centre the geometry uses, so a spin stays put
+        // instead of orbiting the corner of its slot.
+        const auto centre = slot.center();
+        QTransform spin;
+        spin.translate(centre.x(), centre.y());
+        spin.rotate(animation.rotation);
+        spin.translate(-centre.x(), -centre.y());
+        transform = spin * transform;
+    }
+
+    const bool tinted = animation.tint.isValid() && animation.tintStrength > 0;
+    const bool moved = !animation.offset.isNull();
+
+    if (transform.isIdentity() && !tinted && !moved)
+    {
         painter.drawPixmap(drawn, pixmap, QRectF());
         return;
     }
 
     painter.save();
-    painter.setTransform(transform, true);
-    painter.drawPixmap(drawn, pixmap, QRectF());
+
+    if (moved)
+    {
+        painter.translate(animation.offset);
+    }
+    if (!transform.isIdentity())
+    {
+        painter.setTransform(transform, true);
+    }
+
+    if (!tinted)
+    {
+        painter.drawPixmap(drawn, pixmap, QRectF());
+        painter.restore();
+        return;
+    }
+
+    // Recolouring costs a pixmap per frame, which is why only the effects that
+    // actually tint take this path; the moving ones above need no layer.
+    painter.drawPixmap(
+        drawn, tintedPixmap(pixmap, animation.tint, animation.tintStrength),
+        QRectF());
     painter.restore();
 }
 
 void EffectImageLayoutElement::paint(QPainter &painter,
                                      const MessageColors & /*messageColors*/)
 {
-    if (this->image_ == nullptr)
+    if (this->image_ == nullptr || this->needsRepainting())
     {
+        // Left to paintAnimated, so it is not drawn twice.
         return;
     }
 
     auto pixmap = this->image_->pixmapOrLoad();
-    if (pixmap && !this->image_->animated())
+    if (!pixmap)
     {
-        this->drawTransformed(painter, QRectF(this->getRect()), *pixmap);
+        return;
     }
+
+    auto rect = QRectF(this->getRect());
+
+    // Still effects, such as the darkening one, are constant, so the clock they
+    // are evaluated at does not matter.
+    this->drawTransformed(
+        painter, rect, *pixmap,
+        computeEmoteEffectAnimation(this->effects_, 0, rect.height()));
 }
 
 bool EffectImageLayoutElement::paintAnimated(QPainter &painter, qreal yOffset)
 {
-    if (this->image_ == nullptr || !this->image_->animated())
+    if (this->image_ == nullptr || !this->needsRepainting())
     {
         return false;
     }
 
-    if (auto pixmap = this->image_->pixmapOrLoad())
+    auto pixmap = this->image_->pixmapOrLoad();
+    if (!pixmap)
     {
-        auto rect = QRectF(this->getRect());
-        rect.moveTop(rect.y() + yOffset);
-        this->drawTransformed(painter, rect, *pixmap);
+        // Still report that this animates: the image may only be loading, and
+        // giving up now would stop the view ever coming back to it.
         return true;
     }
 
-    return false;
+    auto rect = QRectF(this->getRect());
+    rect.moveTop(rect.y() + yOffset);
+
+    // Wall-clock time, so every viewer sees the same point of the cycle.
+    auto seconds =
+        static_cast<qreal>(QDateTime::currentMSecsSinceEpoch()) / 1000.0;
+
+    this->drawTransformed(
+        painter, rect, *pixmap,
+        computeEmoteEffectAnimation(this->effects_, seconds, rect.height()));
+
+    return true;
 }
 
 void ImageWithBackgroundLayoutElement::paint(
