@@ -407,6 +407,8 @@ set(SOURCE_FILES
         providers/companion/CompanionApi.hpp
         providers/companion/CompanionController.cpp
         providers/companion/CompanionController.hpp
+        providers/companion/CompanionProtocol.cpp
+        providers/companion/CompanionProtocol.hpp
         providers/companion/GlobalBan.cpp
         providers/companion/GlobalBan.hpp
         providers/companion/GlobalBanMarker.cpp
@@ -1074,11 +1076,24 @@ if (BUILD_APP)
             HINTS "${QT6_INSTALL_PREFIX}/bin" "${Qt6_DIR}/../../../bin")
 
         if (CHATTERINO_WINDEPLOYQT)
+            # windeployqt deploys only the platform plugin the app itself uses,
+            # and a platforms/ directory holding just that one takes priority
+            # over the Qt installation. The test binary then cannot find
+            # offscreen and dies in a dialog box about no platform plugin being
+            # initialisable — deploying the app breaks the tests, which is a
+            # connection nobody would guess at.
+            get_target_property(CHATTERINO_QT_BIN Qt6::qmake IMPORTED_LOCATION)
+            get_filename_component(CHATTERINO_QT_BIN "${CHATTERINO_QT_BIN}" DIRECTORY)
+
             add_custom_target(deploy_qt
                 COMMAND "${CHATTERINO_WINDEPLOYQT}"
                         "$<TARGET_FILE:${EXECUTABLE_PROJECT}>"
                         --release --no-compiler-runtime --no-opengl-sw
                         --dir "$<TARGET_FILE_DIR:${EXECUTABLE_PROJECT}>"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                        "${CHATTERINO_QT_BIN}/../plugins/platforms/qoffscreen.dll"
+                        "${CHATTERINO_QT_BIN}/../plugins/platforms/qminimal.dll"
+                        "$<TARGET_FILE_DIR:${EXECUTABLE_PROJECT}>/platforms/"
                 DEPENDS ${EXECUTABLE_PROJECT}
                 COMMENT "Copying the Qt runtime next to chatterino.exe"
                 VERBATIM)

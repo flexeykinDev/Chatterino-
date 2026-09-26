@@ -95,6 +95,13 @@ That brings in the DLLs and, just as necessary, the plugin directories —
 only `platforms` starts and then aborts complaining that no Qt platform plugin
 could be initialised, which reads like a different fault entirely.
 
+The target also copies `qoffscreen.dll` and `qminimal.dll` beside the platform
+plugin the app uses, which `windeployqt` does not. Once a `platforms` directory
+exists it takes priority over the Qt installation, so deploying the app
+otherwise leaves the **test** binary unable to find `offscreen` — it then dies
+in a dialog about no platform plugin being initialisable, and nothing about
+that message suggests the deployment step caused it.
+
 Unlike upstream's instructions, do not pass `--no-translations`: those are Qt's
 own catalogues, and they are what translates the standard dialogs this fork's
 language setting cannot reach by itself.
