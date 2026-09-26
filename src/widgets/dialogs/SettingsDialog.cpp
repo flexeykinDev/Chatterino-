@@ -31,7 +31,18 @@
 #include <QLineEdit>
 #include <QPointer>
 
+#include <algorithm>
+
 using namespace Qt::Literals;
+
+namespace {
+
+/// The tab column's width in the language the dialog was laid out for. It is a
+/// floor rather than a fixed size: a longer translation grows the column, and
+/// the dialog widens to match so the page beside it keeps its room.
+constexpr int BASE_TAB_COLUMN_WIDTH = 150;
+
+}  // namespace
 
 namespace chatterino {
 
@@ -57,6 +68,18 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
     this->initUi();
     this->addTabs();
+    // Now that the tabs exist, the column can be sized to the widest label.
+    this->updateTabLayout();
+
+    // A wider tab column would otherwise eat into the page beside it and clip
+    // its controls, so give the dialog back whatever the column took.
+    int extraTabWidth =
+        this->tabColumnWidth() -
+        static_cast<int>(BASE_TAB_COLUMN_WIDTH * this->dpi_);
+    if (extraTabWidth > 0)
+    {
+        this->resize(this->width() + extraTabWidth, this->height());
+    }
 
     this->addShortcuts();
     this->signalHolder_.managedConnect(getApp()->getHotkeys()->onItemsUpdated,
@@ -133,7 +156,7 @@ void SettingsDialog::initUi()
         .withoutMargin()
         .assign(&this->ui_.tabContainer);
     this->ui_.tabContainerContainer->setFixedWidth(
-        static_cast<int>(150 * this->dpi_));
+        static_cast<int>(BASE_TAB_COLUMN_WIDTH * this->dpi_));
 
     // right side (pages)
     centerBox.emplace<QStackedLayout>()
@@ -411,6 +434,13 @@ void SettingsDialog::scaleChangedEvent(float newScale)
            "Scaling is disabled for the settings dialog - its scale should "
            "always be 1");
 
+    this->updateTabLayout();
+}
+
+void SettingsDialog::updateTabLayout()
+{
+    // Heights first: a tab sizes its icon and padding from its height, and
+    // tabColumnWidth() measures against that.
     for (SettingsDialogTab *tab : this->tabs_)
     {
         tab->setFixedHeight(30);
@@ -418,8 +448,26 @@ void SettingsDialog::scaleChangedEvent(float newScale)
 
     if (this->ui_.tabContainerContainer)
     {
-        this->ui_.tabContainerContainer->setFixedWidth(150);
+        this->ui_.tabContainerContainer->setFixedWidth(this->tabColumnWidth());
     }
+}
+
+int SettingsDialog::tabColumnWidth() const
+{
+    // The English labels fit comfortably in this; it is kept as a floor so the
+    // column does not shrink and look cramped in the language it was designed
+    // for.
+    int width = static_cast<int>(BASE_TAB_COLUMN_WIDTH * this->dpi_);
+
+    // Translations are routinely longer than the English they replace, so grow
+    // to whichever label needs the most room rather than clipping it. Heights
+    // must already be set, since a tab measures its icon and padding from them.
+    for (const SettingsDialogTab *tab : this->tabs_)
+    {
+        width = std::max(width, tab->naturalWidth());
+    }
+
+    return width;
 }
 
 void SettingsDialog::showEvent(QShowEvent *e)

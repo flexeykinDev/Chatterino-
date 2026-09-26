@@ -61,6 +61,11 @@ private:
     void initUi();
     SettingsDialogTab *tab(SettingsTabId id);
     void addTabs();
+
+    /// Sizes the tab column to fit its labels, so a translation longer than the
+    /// English it replaces is not clipped.
+    void updateTabLayout();
+    int tabColumnWidth() const;
     void addTab(std::function<SettingsPage *()> page, const QString &name,
                 const QString &iconPath, SettingsTabId id = {},
                 Qt::Alignment alignment = Qt::AlignTop);

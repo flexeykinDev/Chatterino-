@@ -42,6 +42,14 @@ public:
 
     const QString &name() const;
 
+    /// The width at which this tab's label is drawn in full.
+    ///
+    /// Depends on the tab's current height, because the icon and the padding
+    /// around it are sized from it, so call this only once the height is
+    /// settled. Translated labels are routinely longer than the English ones
+    /// they replace, so a fixed width sized for English clips them.
+    int naturalWidth() const;
+
 Q_SIGNALS:
     void selectedChanged(bool);
 

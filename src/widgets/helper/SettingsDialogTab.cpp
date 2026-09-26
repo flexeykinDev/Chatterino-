@@ -55,6 +55,18 @@ SettingsPage *SettingsDialogTab::page()
     return this->page_;
 }
 
+int SettingsDialogTab::naturalWidth() const
+{
+    // Mirrors the geometry paintEvent() lays out, so the two cannot drift: the
+    // icon sits in a square of padding, and the label starts past it.
+    int iconSize = 20 * this->scale();
+    int pad = (this->height() - iconSize) / 2;
+    int textLeft = (3 * pad) + iconSize;
+
+    return textLeft +
+           this->fontMetrics().horizontalAdvance(this->ui_.labelText) + pad;
+}
+
 void SettingsDialogTab::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
