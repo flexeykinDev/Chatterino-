@@ -169,6 +169,31 @@ private:
     EmoteEffectSet effects_;
 };
 
+/// The cross-channel ban marker: a small rounded tag carrying a number.
+///
+/// Drawn rather than loaded, so the marker needs no asset and no request, and
+/// so it takes its colours from the theme instead of being a fixed picture that
+/// looks wrong on one of them.
+class GlobalBanMarkerLayoutElement : public MessageLayoutElement
+{
+public:
+    GlobalBanMarkerLayoutElement(MessageElement &creator, QString count,
+                                 QSizeF size, float scale);
+
+protected:
+    void addCopyTextToString(QString &str, uint32_t from = 0,
+                             uint32_t to = UINT32_MAX) const override;
+    size_t getSelectionIndexCount() const override;
+    void paint(QPainter &painter, const MessageColors &messageColors) override;
+    bool paintAnimated(QPainter &painter, qreal yOffset) override;
+    int getMouseOverIndex(QPointF abs) const override;
+    qreal getXFromIndex(size_t index) override;
+
+private:
+    QString count_;
+    float scale_ = 1;
+};
+
 class ImageWithBackgroundLayoutElement : public ImageLayoutElement
 {
 public:

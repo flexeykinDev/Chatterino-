@@ -2,6 +2,78 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
 <context>
+    <name>GlobalBanMarkerElement</name>
+    <message numerus="yes">
+        <source>Banned on %n other channel(s). Click to see where and why.</source>
+        <extracomment>Tooltip on the cross-channel ban marker. %n is the number of other channels the chatter is banned on.</extracomment>
+        <translation>
+            <numerusform>Забанен ещё на %n канале. Нажмите, чтобы увидеть где и за что.</numerusform>
+            <numerusform>Забанен ещё на %n каналах. Нажмите, чтобы увидеть где и за что.</numerusform>
+            <numerusform>Забанен ещё на %n каналах. Нажмите, чтобы увидеть где и за что.</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
+    <name>chatterino::GlobalBanHistoryPopup</name>
+    <message>
+        <source>Ban history</source>
+        <translation>История банов</translation>
+    </message>
+    <message>
+        <source>Vouch for them here</source>
+        <translation>Поручиться за него здесь</translation>
+    </message>
+    <message>
+        <source>Hides this marker for everyone watching this channel. It does not undo any ban.</source>
+        <translation>Скрывает метку для всех, кто смотрит этот канал. Сами баны не отменяются.</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Загрузка…</translation>
+    </message>
+    <message>
+        <source>No companion service is configured, so there is no ban history to read.</source>
+        <translation>Сервис не настроен, поэтому историю банов читать неоткуда.</translation>
+    </message>
+    <message>
+        <source>Could not reach the companion service.</source>
+        <translation>Не удалось связаться с сервисом.</translation>
+    </message>
+    <message>
+        <source>%1 has no recorded bans.</source>
+        <translation>У %1 нет записанных банов.</translation>
+    </message>
+    <message numerus="yes">
+        <source>%1 is banned on %n other channel(s).</source>
+        <extracomment>%1 is a chatter&apos;s name, %n the number of channels they are still banned on as seen from the channel being read.</extracomment>
+        <translation>
+            <numerusform>%1 забанен ещё на %n канале.</numerusform>
+            <numerusform>%1 забанен ещё на %n каналах.</numerusform>
+            <numerusform>%1 забанен ещё на %n каналах.</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>no longer in force</source>
+        <translation>больше не действует</translation>
+    </message>
+    <message>
+        <source>vouched for by a moderator there</source>
+        <translation>модератор канала поручился</translation>
+    </message>
+    <message>
+        <source>%1 · %2</source>
+        <translation>%1 · %2</translation>
+    </message>
+    <message>
+        <source>%1 · %2 · %3</source>
+        <translation>%1 · %2 · %3</translation>
+    </message>
+    <message>
+        <source>Reason: %1</source>
+        <translation>Причина: %1</translation>
+    </message>
+</context>
+<context>
     <name>chatterino::HighlightingPage</name>
     <message>
         <source>Open Sound</source>

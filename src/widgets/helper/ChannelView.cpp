@@ -39,6 +39,7 @@
 #include "util/QMagicEnum.hpp"
 #include "util/Twitch.hpp"
 #include "widgets/buttons/LabelButton.hpp"
+#include "widgets/dialogs/GlobalBanHistoryPopup.hpp"
 #include "widgets/dialogs/ReplyThreadPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/dialogs/UserInfoPopup.hpp"
@@ -3250,6 +3251,28 @@ void ChannelView::handleLinkClick(QMouseEvent *event, const Link &link,
             }
 
             this->scrollToMessageId(link.value);
+        }
+        break;
+
+        case Link::GlobalBanHistory: {
+            auto *twitchChannel =
+                dynamic_cast<TwitchChannel *>(this->underlyingChannel_.get());
+            if (twitchChannel == nullptr)
+            {
+                return;
+            }
+
+            // Vouching applies to the channel being read, so it is offered
+            // only to its own moderators. The service checks this as well; the
+            // point here is not to offer a button that will be refused.
+            auto canVouch = twitchChannel->isMod() ||
+                            twitchChannel->isBroadcaster();
+
+            auto *popup = new GlobalBanHistoryPopup(
+                link.value, layout->getMessage()->displayName,
+                twitchChannel->roomId(), canVouch, this);
+            popup->setAttribute(Qt::WA_DeleteOnClose);
+            popup->show();
         }
         break;
 

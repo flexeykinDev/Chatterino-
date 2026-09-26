@@ -14,8 +14,11 @@
 #include "messages/layouts/MessageLayoutContainer.hpp"
 #include "messages/layouts/MessageLayoutContext.hpp"
 #include "messages/layouts/MessageLayoutElement.hpp"
+#include "providers/companion/CompanionController.hpp"
+#include "providers/companion/GlobalBanMarker.hpp"
 #include "providers/emoji/Emojis.hpp"
 #include "providers/twitch/TwitchEmotes.hpp"
+#include "singletons/Fonts.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/Theme.hpp"
 #include "util/DebugCount.hpp"
@@ -37,6 +40,10 @@ namespace chatterino {
 using namespace literals;
 
 namespace {
+
+/// Twitch badges are 18 logical pixels tall; matching that keeps the marker
+/// on the same baseline as the badges it sits beside.
+constexpr qreal badgeHeight = 18;
 
 // Computes the bounding box for the given vector of images
 QSizeF getBoundingBoxSize(const std::vector<ImagePtr> &images)
@@ -626,6 +633,92 @@ std::string_view BadgeElement::type() const
 std::unique_ptr<MessageElement> BadgeElement::clone() const
 {
     auto elem = std::make_unique<BadgeElement>(this->emote_, this->getFlags());
+    elem->cloneFrom(*this);
+    return elem;
+}
+
+// GLOBAL BAN MARKER
+GlobalBanMarkerElement::GlobalBanMarkerElement(QString userId,
+                                               QString channelId,
+                                               MessageElementFlags flags)
+    : MessageElement(flags)
+    , userId_(std::move(userId))
+    , channelId_(std::move(channelId))
+{
+    this->setTrailingSpace(true);
+    this->setLink({Link::GlobalBanHistory, this->userId_});
+}
+
+void GlobalBanMarkerElement::addToContainer(MessageLayoutContainer &container,
+                                            const MessageLayoutContext &ctx)
+{
+    if (!this->matchesFlags(ctx.flags))
+    {
+        return;
+    }
+
+    if (!getSettings()->showGlobalBanMarker)
+    {
+        return;
+    }
+
+    auto *companion = getApp()->getCompanion();
+    if (companion == nullptr)
+    {
+        return;
+    }
+
+    // A plain lookup, never a request: this runs on every relayout, which
+    // includes every resize of the window.
+    auto count = companion->globalBans().markerCount(this->channelId_,
+                                                     this->userId_);
+    if (!count.has_value() || *count <= 0)
+    {
+        return;
+    }
+
+    auto scale = container.getScale();
+    auto metrics = getApp()->getFonts()->getFontMetrics(
+        FontStyle::ChatMediumBold, scale);
+
+    auto text = QString::number(*count);
+    auto size = GlobalBanMarkerMetrics::size(
+        badgeHeight * scale, metrics.horizontalAdvance(text));
+
+    this->setTooltip(GlobalBanMarkerElement::tooltipFor(*count));
+
+    container.addElement(
+        new GlobalBanMarkerLayoutElement(*this, text, size, scale));
+}
+
+QString GlobalBanMarkerElement::tooltipFor(int count)
+{
+    //: Tooltip on the cross-channel ban marker. %n is the number of other
+    //: channels the chatter is banned on.
+    return GlobalBanMarkerElement::tr(
+        "Banned on %n other channel(s). Click to see where and why.", "",
+        count);
+}
+
+QJsonObject GlobalBanMarkerElement::toJson() const
+{
+    auto base = MessageElement::toJson();
+    base["type"_L1] = u"GlobalBanMarkerElement"_s;
+    base["userId"_L1] = this->userId_;
+    base["channelId"_L1] = this->channelId_;
+
+    return base;
+}
+
+std::string_view GlobalBanMarkerElement::type() const
+{
+    return std::remove_pointer_t<decltype(this)>::TYPE;
+}
+
+std::unique_ptr<MessageElement> GlobalBanMarkerElement::clone() const
+{
+    auto elem = std::make_unique<GlobalBanMarkerElement>(
+        this->userId_, this->channelId_, this->getFlags());
     elem->cloneFrom(*this);
     return elem;
 }

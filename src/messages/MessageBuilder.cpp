@@ -25,6 +25,7 @@
 #include "providers/bttv/BttvBadges.hpp"
 #include "providers/bttv/BttvEmotes.hpp"
 #include "providers/chatterino/ChatterinoBadges.hpp"
+#include "providers/companion/CompanionController.hpp"
 #include "providers/colors/ColorProvider.hpp"
 #include "providers/emoji/Emojis.hpp"
 #include "providers/emoteeffects/EmoteEffectController.hpp"
@@ -1895,6 +1896,7 @@ std::pair<MessagePtrMut, HighlightAlert> MessageBuilder::makeIrcMessage(
         builder.appendFfzBadges(twitchChannel, userID);
         builder.appendBttvBadges(userID);
         builder.appendSeventvBadges(userID);
+        builder.appendGlobalBanMarker(twitchChannel, userID);
 
         builder.appendUsername(tags, args);
 
@@ -3126,6 +3128,34 @@ void MessageBuilder::appendSeventvBadges(const QString &userID)
         /// e.g. "7tv:NNYS 2024"
         this->message().externalBadges.emplace_back((*badge)->name.string);
     }
+}
+
+void MessageBuilder::appendGlobalBanMarker(TwitchChannel *twitchChannel,
+                                           const QString &userID)
+{
+    if (twitchChannel == nullptr || userID.isEmpty())
+    {
+        return;
+    }
+
+    auto *companion = getApp()->getCompanion();
+    if (companion == nullptr || !companion->isEnabled())
+    {
+        return;
+    }
+
+    auto channelId = twitchChannel->roomId();
+    if (channelId.isEmpty())
+    {
+        return;
+    }
+
+    // Asking is queued, not sent: a busy chat would otherwise make one request
+    // per message.
+    companion->noteChatter(channelId, userID);
+
+    this->emplace<GlobalBanMarkerElement>(userID, channelId,
+                                          MessageElementFlag::BadgeGlobalBan);
 }
 
 Outcome MessageBuilder::tryAppendCheermote(TextState &state,

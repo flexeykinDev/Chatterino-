@@ -957,6 +957,26 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         });
 
     layout.addNavigationSpacing();
+    layout.addTitle("Companion service");
+    layout.addDescription(
+        "Features that are shared state between people — a cross-channel ban "
+        "registry, for instance — need a server to hold that state. Point "
+        "this at one you run or trust; leaving it empty, the default, turns "
+        "those features off and contacts nobody.");
+
+    SettingWidget::lineEdit("Address", s.companionUrl,
+                            "https://example.com/api")
+        ->addTo(layout);
+
+    SettingWidget::checkbox("Mark chatters banned on other channels",
+                            s.showGlobalBanMarker)
+        ->setTooltip(
+            "Shows a tag beside a chatter carrying how many other channels "
+            "have banned them. It is a prompt to look, not a verdict: clicking "
+            "it shows where and why.")
+        ->addTo(layout);
+
+    layout.addNavigationSpacing();
     layout.addTitle("Beta");
     if (Version::instance().isSupportedOS())
     {

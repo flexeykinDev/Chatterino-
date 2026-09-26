@@ -26,6 +26,8 @@ public:
         ReplyToMessage,
         ViewThread,
         JumpToMessage,
+        /// Opens the cross-channel ban history for a chatter, by Twitch id.
+        GlobalBanHistory,
     };
 
     Link();

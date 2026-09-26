@@ -403,6 +403,17 @@ set(SOURCE_FILES
         providers/colors/ColorProvider.cpp
         providers/colors/ColorProvider.hpp
 
+        providers/companion/CompanionApi.cpp
+        providers/companion/CompanionApi.hpp
+        providers/companion/CompanionController.cpp
+        providers/companion/CompanionController.hpp
+        providers/companion/GlobalBan.cpp
+        providers/companion/GlobalBan.hpp
+        providers/companion/GlobalBanMarker.cpp
+        providers/companion/GlobalBanMarker.hpp
+        providers/companion/GlobalBanRegistry.cpp
+        providers/companion/GlobalBanRegistry.hpp
+
         providers/emoji/Emojis.cpp
         providers/emoji/Emojis.hpp
         providers/emoji/EmojiStyle.hpp
@@ -722,6 +733,9 @@ set(SOURCE_FILES
         widgets/dialogs/EditUserNotesDialog.hpp
         widgets/dialogs/EmotePopup.cpp
         widgets/dialogs/EmotePopup.hpp
+
+        widgets/dialogs/GlobalBanHistoryPopup.cpp
+        widgets/dialogs/GlobalBanHistoryPopup.hpp
 
         widgets/dialogs/font/FontDialog.cpp
         widgets/dialogs/font/FontDialog.hpp

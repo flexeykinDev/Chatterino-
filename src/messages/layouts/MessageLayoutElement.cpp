@@ -9,7 +9,9 @@
 #include "messages/Image.hpp"
 #include "messages/layouts/MessageLayoutContext.hpp"
 #include "messages/MessageElement.hpp"
+#include "providers/companion/GlobalBanMarker.hpp"
 #include "providers/twitch/TwitchEmotes.hpp"
+#include "singletons/Fonts.hpp"
 #include "util/DebugCount.hpp"
 
 #include <QDebug>
@@ -365,6 +367,86 @@ qreal LayeredImageLayoutElement::getXFromIndex(size_t index)
 //
 // IMAGE WITH BACKGROUND
 //
+//
+// GLOBAL BAN MARKER
+//
+
+GlobalBanMarkerLayoutElement::GlobalBanMarkerLayoutElement(
+    MessageElement &creator, QString count, QSizeF size, float scale)
+    : MessageLayoutElement(creator, size)
+    , count_(std::move(count))
+    , scale_(scale)
+{
+}
+
+void GlobalBanMarkerLayoutElement::addCopyTextToString(QString &str,
+                                                       uint32_t /*from*/,
+                                                       uint32_t /*to*/) const
+{
+    // Deliberately nothing. The marker is this client's annotation, not part of
+    // what anyone said, so copying a message must not paste it.
+    (void)str;
+}
+
+size_t GlobalBanMarkerLayoutElement::getSelectionIndexCount() const
+{
+    return 1;
+}
+
+void GlobalBanMarkerLayoutElement::paint(QPainter &painter,
+                                         const MessageColors & /*colors*/)
+{
+    auto bounds = this->getRect();
+    if (bounds.isEmpty())
+    {
+        return;
+    }
+
+    // Amber rather than red, and fixed rather than themed: the marker is a
+    // prompt to look, not a verdict, and it has to keep reading as caution on
+    // a light theme and a dark one alike.
+    static const QColor background("#d9932b");
+    static const QColor foreground("#1a1207");
+
+    auto radius = GlobalBanMarkerMetrics::cornerRadius(bounds.height());
+
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(background);
+    painter.drawRoundedRect(bounds, radius, radius);
+
+    painter.setPen(foreground);
+    painter.setFont(getApp()->getFonts()->getFont(FontStyle::ChatMediumBold,
+                                                  this->scale_));
+    painter.drawText(GlobalBanMarkerMetrics::textRect(bounds),
+                     Qt::AlignCenter | Qt::TextSingleLine, this->count_);
+
+    painter.restore();
+}
+
+bool GlobalBanMarkerLayoutElement::paintAnimated(QPainter & /*painter*/,
+                                                 qreal /*yOffset*/)
+{
+    return false;
+}
+
+int GlobalBanMarkerLayoutElement::getMouseOverIndex(QPointF /*abs*/) const
+{
+    return 0;
+}
+
+qreal GlobalBanMarkerLayoutElement::getXFromIndex(size_t index)
+{
+    if (index <= 0)
+    {
+        return this->getRect().left();
+    }
+
+    return this->getRect().right();
+}
+
 ImageWithBackgroundLayoutElement::ImageWithBackgroundLayoutElement(
     MessageElement &creator, ImagePtr image, QSizeF size, QColor color)
     : ImageLayoutElement(creator, std::move(image), size)

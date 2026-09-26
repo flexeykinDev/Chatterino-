@@ -3,6 +3,7 @@
 #include "Application.hpp"
 #include "common/Args.hpp"
 #include "common/Modes.hpp"
+#include "providers/companion/CompanionController.hpp"
 #include "providers/emoteeffects/EmoteEffectController.hpp"
 #include "singletons/Paths.hpp"
 #include "singletons/Updates.hpp"
@@ -79,6 +80,13 @@ public:
         // Effect resolution is skipped when there is no catalogue, so a test
         // that does not care about effects needs no controller at all.
         return &this->emoteEffects;
+    }
+
+    CompanionController *getCompanion() override
+    {
+        // Left unconfigured, so every companion feature reads as "off" and a
+        // test that does not care about the service needs no server.
+        return &this->companion;
     }
 
     AccountController *getAccounts() override
@@ -308,6 +316,7 @@ public:
 
     QTemporaryDir settingsDir;
     EmoteEffectController emoteEffects;
+    CompanionController companion;
     Args args_;
     Modes modes_{args_};
     Paths paths_ = {args_, modes_};

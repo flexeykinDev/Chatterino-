@@ -256,6 +256,15 @@ public:
         "/appearance/messages/alternateMessageBackground", false};
     FloatSetting boldScale = {"/appearance/boldScale", 63};
     BoolSetting showTabCloseButton = {"/appearance/showTabCloseButton", true};
+    /// Address of the companion service, as its API root — for instance
+    /// `https://example.invalid/api`. Empty, the default, turns off every
+    /// feature that needs it: asking a third-party server who is in a chat is
+    /// not something to do unless asked.
+    QStringSetting companionUrl = {"/companion/url", ""};
+    /// Show a marker beside chatters the companion service has recorded bans
+    /// for on other channels. Only has an effect when the address above is set.
+    BoolSetting showGlobalBanMarker = {"/companion/showGlobalBanMarker", true};
+
     /// Show a Twitch channel's profile picture on its tab instead of its name.
     /// Tabs become square, and a tab whose channel has no picture, or which is
     /// not a single Twitch channel, keeps its name.

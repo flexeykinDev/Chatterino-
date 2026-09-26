@@ -4,6 +4,8 @@
 
 #include "singletons/Localization.hpp"
 
+#include "messages/MessageElement.hpp"
+#include "widgets/dialogs/GlobalBanHistoryPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/settingspages/HighlightingPage.hpp"
 #include "widgets/settingspages/NotificationPage.hpp"
@@ -140,6 +142,40 @@ TEST_F(LocalizationTest, TranslatedClassesDeclareTheirOwnContext)
                  "chatterino::HighlightingPage");
     EXPECT_STREQ(NotificationPage::staticMetaObject.className(),
                  "chatterino::NotificationPage");
+    EXPECT_STREQ(GlobalBanHistoryPopup::staticMetaObject.className(),
+                 "chatterino::GlobalBanHistoryPopup");
+}
+
+/// A class that is not a QObject gets its context from
+/// Q_DECLARE_TR_FUNCTIONS instead, and the same trap applies: without it,
+/// tr() resolves somewhere else and quietly returns English.
+///
+/// This asks for the string the way the message layout does, so a missing or
+/// misspelled context shows up as an English tooltip here too.
+TEST_F(LocalizationTest, NonQObjectClassesTranslateThroughTheirOwnContext)
+{
+    Localization::apply("ru");
+
+    EXPECT_EQ(GlobalBanMarkerElement::tooltipFor(1),
+              QString::fromUtf8(
+                  "Забанен ещё на 1 канале. Нажмите, чтобы увидеть где и за "
+                  "что."));
+}
+
+/// Russian has three plural forms, and %n picks between them. A catalogue with
+/// only one filled in would pass the test above and still read wrongly for
+/// every count but one.
+TEST_F(LocalizationTest, PluralFormsAgreeWithTheCount)
+{
+    Localization::apply("ru");
+
+    auto one = GlobalBanMarkerElement::tooltipFor(1);
+    auto few = GlobalBanMarkerElement::tooltipFor(3);
+    auto many = GlobalBanMarkerElement::tooltipFor(11);
+
+    EXPECT_TRUE(one.contains(QString::fromUtf8("1 канале")));
+    EXPECT_TRUE(few.contains(QString::fromUtf8("3 каналах")));
+    EXPECT_TRUE(many.contains(QString::fromUtf8("11 каналах")));
 }
 
 /// Every context the catalogue carries must correspond to a real class name, or

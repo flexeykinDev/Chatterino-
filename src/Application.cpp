@@ -18,6 +18,7 @@
 #include "controllers/sound/ISoundController.hpp"
 #include "controllers/spellcheck/SpellChecker.hpp"
 #include "providers/bttv/BttvBadges.hpp"
+#include "providers/companion/CompanionController.hpp"
 #include "providers/emoteeffects/EmoteEffectController.hpp"
 #include "providers/bttv/BttvEmotes.hpp"
 #include "providers/ffz/FfzEmotes.hpp"
@@ -164,6 +165,7 @@ Application::Application(Settings &_settings, const Paths &paths,
     , logging(new Logging(_settings))
     , emotes(new EmoteController)
     , emoteEffects(new EmoteEffectController)
+    , companion(new CompanionController)
     , accounts(new AccountController)
     , eventSub(new eventsub::Controller())
     , hotkeys(new HotkeyController)
@@ -248,6 +250,7 @@ void Application::initialize(Settings &settings, const Paths &paths)
     this->ffzEmotes->loadEmotes();
     this->seventvEmotes->loadGlobalEmotes();
     this->emoteEffects->load(settings.emoteEffectsUrl.getValue());
+    this->companion->followSetting(settings.companionUrl);
 
     this->twitch->initialize();
 
@@ -349,6 +352,14 @@ EmoteEffectController *Application::getEmoteEffects()
     assert(this->emoteEffects);
 
     return this->emoteEffects.get();
+}
+
+CompanionController *Application::getCompanion()
+{
+    assertInGuiThread();
+    assert(this->companion);
+
+    return this->companion.get();
 }
 
 AccountController *Application::getAccounts()

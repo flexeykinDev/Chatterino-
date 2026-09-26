@@ -14,6 +14,7 @@
 
 #include <magic_enum/magic_enum.hpp>
 #include <pajlada/signals/signalholder.hpp>
+#include <QCoreApplication>
 #include <QRect>
 #include <QString>
 #include <QTime>
@@ -54,7 +55,10 @@ enum class MessageElementFlag : int64_t {
     ChannelPointReward = (1LL << 8),
     ChannelPointRewardImage = ChannelPointReward | EmoteImage,
 
-    // unused: (1LL << 9),
+    // Slot 10: this fork
+    // - Cross-channel ban marker
+    BadgeGlobalBan = (1LL << 9),
+
     // unused: (1LL << 10),
 
     BitsStatic = (1LL << 11),
@@ -122,7 +126,7 @@ enum class MessageElementFlag : int64_t {
 
     Badges = BadgeGlobalAuthority | BadgePredictions | BadgeChannelAuthority |
              BadgeSubscription | BadgeVanity | BadgeChatterino | BadgeSevenTV |
-             BadgeFfz | BadgeSharedChannel | BadgeBttv,
+             BadgeFfz | BadgeSharedChannel | BadgeBttv | BadgeGlobalBan,
 
     ChannelName = (1LL << 20),
 
@@ -608,6 +612,41 @@ private:
 
     std::unique_ptr<TextElement> textElement_;
     MessageColor textElementColor_;
+};
+
+/// The cross-channel ban marker beside a chatter's name.
+///
+/// Unlike every other badge, this one does not know whether it should be drawn
+/// when the message is built: the answer comes from the companion service some
+/// time later. So the element is always added and decides at layout time,
+/// emitting nothing while the answer is unknown or zero. Layout runs again when
+/// an answer arrives, which is what makes the marker appear.
+///
+/// It carries the channel it was built in, because the service answers "banned
+/// *elsewhere*" and that is relative to where you are reading.
+class GlobalBanMarkerElement : public MessageElement
+{
+    Q_DECLARE_TR_FUNCTIONS(GlobalBanMarkerElement)
+
+public:
+    static constexpr std::string_view TYPE = "global-ban-marker";
+
+    GlobalBanMarkerElement(QString userId, QString channelId,
+                           MessageElementFlags flags_);
+
+    void addToContainer(MessageLayoutContainer &container,
+                        const MessageLayoutContext &ctx) override;
+
+    QJsonObject toJson() const override;
+    std::string_view type() const override;
+    std::unique_ptr<MessageElement> clone() const override;
+
+    /// Exposed so the wording can be checked without laying out a message.
+    static QString tooltipFor(int count);
+
+private:
+    QString userId_;
+    QString channelId_;
 };
 
 class BadgeElement : public MessageElement

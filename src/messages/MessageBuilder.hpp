@@ -349,6 +349,12 @@ private:
     void appendFfzBadges(TwitchChannel *twitchChannel, const QString &userID);
     void appendBttvBadges(const QString &userID);
     void appendSeventvBadges(const QString &userID);
+    /// Adds the cross-channel ban marker placeholder. Always added when the
+    /// companion service is configured, since whether it draws anything is
+    /// only known once the service has answered — see
+    /// GlobalBanMarkerElement.
+    void appendGlobalBanMarker(TwitchChannel *twitchChannel,
+                               const QString &userID);
 
     [[nodiscard]] static bool isIgnored(const QString &originalMessage,
                                         const QString &userID,
