@@ -586,6 +586,13 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                             s.hideMessageTimestampsWhenLive)
         ->addTo(layout);
 
+    SettingWidget::checkbox("Hide the mentions button", s.hideMentionsButton)
+        ->setTooltip(
+            "The \"@\" beside the tabs, which opens every mention in one "
+            "window and carries how many you have not read. Hiding it does not "
+            "turn the window off; it still opens with its hotkey.")
+        ->addTo(layout);
+
     SettingWidget::checkbox("Fold community sub gifts into one message",
                             s.collapseMassGifts)
         ->setTooltip(

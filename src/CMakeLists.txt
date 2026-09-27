@@ -505,6 +505,8 @@ set(SOURCE_FILES
         providers/twitch/ChatModes.hpp
         providers/twitch/MassGift.cpp
         providers/twitch/MassGift.hpp
+        providers/twitch/Mentions.cpp
+        providers/twitch/Mentions.hpp
         providers/twitch/PollState.cpp
         providers/twitch/PollState.hpp
         providers/twitch/PubSubClient.cpp
@@ -760,6 +762,8 @@ set(SOURCE_FILES
 
         widgets/dialogs/GlobalBanHistoryPopup.cpp
         widgets/dialogs/GlobalBanHistoryPopup.hpp
+        widgets/dialogs/MentionsPopup.cpp
+        widgets/dialogs/MentionsPopup.hpp
 
         widgets/dialogs/font/FontDialog.cpp
         widgets/dialogs/font/FontDialog.hpp

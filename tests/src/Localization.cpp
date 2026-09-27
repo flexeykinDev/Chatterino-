@@ -5,7 +5,10 @@
 #include "singletons/Localization.hpp"
 
 #include "messages/MessageElement.hpp"
+#include "widgets/dialogs/CreatePollDialog.hpp"
 #include "widgets/dialogs/GlobalBanHistoryPopup.hpp"
+#include "widgets/dialogs/MentionsPopup.hpp"
+#include "widgets/splits/ChatModesPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/settingspages/HighlightingPage.hpp"
 #include "widgets/settingspages/NotificationPage.hpp"
@@ -144,6 +147,12 @@ TEST_F(LocalizationTest, TranslatedClassesDeclareTheirOwnContext)
                  "chatterino::NotificationPage");
     EXPECT_STREQ(GlobalBanHistoryPopup::staticMetaObject.className(),
                  "chatterino::GlobalBanHistoryPopup");
+    EXPECT_STREQ(MentionsPopup::staticMetaObject.className(),
+                 "chatterino::MentionsPopup");
+    EXPECT_STREQ(ChatModesPopup::staticMetaObject.className(),
+                 "chatterino::ChatModesPopup");
+    EXPECT_STREQ(CreatePollDialog::staticMetaObject.className(),
+                 "chatterino::CreatePollDialog");
 }
 
 /// A class that is not a QObject gets its context from

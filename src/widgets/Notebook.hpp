@@ -24,6 +24,7 @@ namespace chatterino {
 
 class Button;
 class PixmapButton;
+class LabelButton;
 class Window;
 class DrawnButton;
 class NotebookTab;
@@ -310,6 +311,10 @@ private:
     void addCustomButtons();
 
     pajlada::Signals::SignalHolder signalHolder_;
+
+    /// The "@" in the tab bar, whose label carries the unread count.
+    LabelButton *mentionsButton_{};
+    void updateMentionsButton();
 
     // Main window on Windows has basically a duplicate of this in Window
     PixmapButton *streamerModeIcon_{};

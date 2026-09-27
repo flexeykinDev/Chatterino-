@@ -491,6 +491,9 @@ void HotkeyController::addDefaults(std::set<QString> &addedHotkeys)
         this->tryAddDefault(addedHotkeys, HotkeyCategory::Window,
                             QKeySequence("Ctrl+T"), "newSplit",
                             std::vector<QString>(), "new split");
+        this->tryAddDefault(addedHotkeys, HotkeyCategory::Window,
+                            QKeySequence("Ctrl+M"), "openMentions",
+                            std::vector<QString>(), "open mentions");
         for (int i = 0; i < 8; i++)
         {
             this->tryAddDefault(addedHotkeys, HotkeyCategory::Window,

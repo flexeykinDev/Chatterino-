@@ -26,6 +26,7 @@
 #include "widgets/buttons/LabelButton.hpp"
 #include "widgets/buttons/PixmapButton.hpp"
 #include "widgets/buttons/TitlebarButton.hpp"
+#include "widgets/dialogs/MentionsPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/dialogs/switcher/QuickSwitcherPopup.hpp"
 #include "widgets/dialogs/UpdateDialog.hpp"
@@ -375,6 +376,11 @@ void Window::addShortcuts()
         {"openSettings",  // Open settings
          [this](std::vector<QString>) -> QString {
              SettingsDialog::showDialog(this);
+             return "";
+         }},
+        {"openMentions",  // Open the mentions window
+         [this](std::vector<QString>) -> QString {
+             MentionsPopup::showUnique(this);
              return "";
          }},
         {"openAccountSelector",  // Open account selector

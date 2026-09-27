@@ -30,6 +30,8 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/ChatModesPopup.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/CreatePollDialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/MassGift.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/Mentions.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/MentionsPopup.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollDraft.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PresenceRegistry.cpp

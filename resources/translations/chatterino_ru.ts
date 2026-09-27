@@ -110,6 +110,49 @@
     </message>
 </context>
 <context>
+    <name>Mentions</name>
+    <message>
+        <source>Whispers are answered in the Whispers tab.</source>
+        <translation>На шёпот отвечают во вкладке «Шёпот».</translation>
+    </message>
+    <message>
+        <source>This is an AutoMod notice about somebody else&apos;s message.</source>
+        <translation>Это уведомление АвтоМода о чужом сообщении.</translation>
+    </message>
+    <message>
+        <source>This is a notice, not a message somebody sent.</source>
+        <translation>Это уведомление, а не чьё-то сообщение.</translation>
+    </message>
+    <message>
+        <source>This mention does not say which channel it was in.</source>
+        <translation>В этом упоминании не указан канал.</translation>
+    </message>
+    <message>
+        <source>You have left #%1, so a reply would have nowhere to go.</source>
+        <translation>Вы вышли из #%1, отвечать некуда.</translation>
+    </message>
+    <message>
+        <source>Twitch gave this message no id to reply to.</source>
+        <translation>Twitch не дал этому сообщению идентификатора для ответа.</translation>
+    </message>
+    <message>
+        <source>The message this one replies to can no longer be replied to.</source>
+        <translation>На сообщение, которому оно отвечает, уже нельзя ответить.</translation>
+    </message>
+    <message>
+        <source>This message is too old to reply to.</source>
+        <translation>Это сообщение слишком старое для ответа.</translation>
+    </message>
+    <message>
+        <source>@%1: %2</source>
+        <translation>@%1: %2</translation>
+    </message>
+    <message>
+        <source>@%1 in #%2: %3</source>
+        <translation>@%1 в #%2: %3</translation>
+    </message>
+</context>
+<context>
     <name>PollDraft</name>
     <message>
         <source>Give the poll a question.</source>
@@ -352,6 +395,37 @@
     <message>
         <source>Audio Files (*.mp3 *.wav)</source>
         <translation>Аудиофайлы (*.mp3 *.wav)</translation>
+    </message>
+</context>
+<context>
+    <name>chatterino::MentionsPopup</name>
+    <message>
+        <source>Mentions</source>
+        <translation>Упоминания</translation>
+    </message>
+    <message>
+        <source>An earlier mention</source>
+        <translation>Предыдущее упоминание</translation>
+    </message>
+    <message>
+        <source>A later mention</source>
+        <translation>Следующее упоминание</translation>
+    </message>
+    <message>
+        <source>Reply to this mention</source>
+        <translation>Ответить на это упоминание</translation>
+    </message>
+    <message>
+        <source>Reply</source>
+        <translation>Ответить</translation>
+    </message>
+    <message>
+        <source>Nobody has mentioned you yet.</source>
+        <translation>Вас пока никто не упоминал.</translation>
+    </message>
+    <message>
+        <source>None of these can be replied to.</source>
+        <translation>Ни на одно из них нельзя ответить.</translation>
     </message>
 </context>
 <context>

@@ -10,6 +10,8 @@
 #include "controllers/accounts/AccountController.hpp"
 #include "controllers/hotkeys/HotkeyCategory.hpp"
 #include "controllers/hotkeys/HotkeyController.hpp"
+#include "providers/twitch/Mentions.hpp"
+#include "providers/twitch/TwitchIrcServer.hpp"
 #include "singletons/Resources.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/StreamerMode.hpp"
@@ -17,8 +19,10 @@
 #include "singletons/WindowManager.hpp"
 #include "widgets/buttons/DrawnButton.hpp"
 #include "widgets/buttons/InitUpdateButton.hpp"
+#include "widgets/buttons/LabelButton.hpp"
 #include "widgets/buttons/PixmapButton.hpp"
 #include "widgets/buttons/SvgButton.hpp"
+#include "widgets/dialogs/MentionsPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/helper/ChannelView.hpp"
 #include "widgets/helper/NotebookTab.hpp"
@@ -1727,6 +1731,55 @@ void SplitNotebook::addCustomButtons()
             this->mapToGlobal(userBtn->rect().bottomRight()));
     });
 
+    // mentions
+    //
+    // Upstream collects mentions but only shows them in a split you have to
+    // give up permanently, so most people never see them. This is the way in,
+    // and it carries the count so there is a reason to look.
+    this->mentionsButton_ = this->addCustomButton<LabelButton>(
+        mentionButtonLabel(0));
+    this->mentionsButton_->setToolTip(
+        "Everywhere you have been mentioned, with a box to reply from.");
+
+    this->mentionsButton_->setVisible(
+        !getSettings()->hideMentionsButton.getValue());
+    getSettings()->hideMentionsButton.connect(
+        [this](bool hide) {
+            if (this->mentionsButton_ == nullptr)
+            {
+                return;
+            }
+            auto oldVisibility = this->mentionsButton_->isVisible();
+            this->mentionsButton_->setVisible(!hide);
+            if (oldVisibility == hide)
+            {
+                this->performLayout();
+            }
+        },
+        this->signalHolder_, false);
+
+    QObject::connect(this->mentionsButton_, &Button::leftClicked, this, [this] {
+        MentionsPopup::showUnique(this);
+    });
+
+    // The count has to follow both a mention arriving and another window
+    // marking them read, which is why what has been read is a setting rather
+    // than something this window keeps to itself.
+    if (auto *twitch = getApp()->getTwitch())
+    {
+        this->signalHolder_.managedConnect(
+            twitch->getMentionsChannel()->messageAppended,
+            [this](auto &, auto) {
+                this->updateMentionsButton();
+            });
+    }
+    getSettings()->lastSeenMention.connect(
+        [this](const auto &) {
+            this->updateMentionsButton();
+        },
+        this->signalHolder_, false);
+    this->updateMentionsButton();
+
     // updates
     auto *updateBtn = this->addCustomButton<PixmapButton>();
 
@@ -1748,6 +1801,25 @@ void SplitNotebook::addCustomButtons()
     this->updateStreamerModeIcon();
 
     this->performLayout(false);
+}
+
+void SplitNotebook::updateMentionsButton()
+{
+    if (this->mentionsButton_ == nullptr)
+    {
+        return;
+    }
+
+    auto label = mentionButtonLabel(MentionsPopup::unreadCount());
+    if (this->mentionsButton_->text() == label)
+    {
+        return;
+    }
+
+    this->mentionsButton_->setText(label);
+    // The button changes width when the count appears or loses a digit, and the
+    // tabs beside it have to move out of the way.
+    this->performLayout();
 }
 
 void SplitNotebook::updateStreamerModeIcon()

@@ -268,6 +268,16 @@ public:
     /// have a session live. Only has an effect when the address above is set.
     BoolSetting showPresenceDot = {"/companion/showPresenceDot", true};
 
+    /// Hide the "@" button in the tab bar. The mentions window is still
+    /// reachable by its hotkey.
+    BoolSetting hideMentionsButton = {"/appearance/hideMentionsButton", false};
+
+    /// The id of the newest mention that has been looked at, so the count on
+    /// the mentions button survives a restart and agrees between windows.
+    /// Held as a setting rather than in memory precisely because it has to be
+    /// the same answer everywhere.
+    QStringSetting lastSeenMention = {"/mentions/lastSeen", ""};
+
     /// Fold a community sub gift into one message instead of showing every
     /// gift in it. A hundred-sub gift is otherwise a hundred and one messages,
     /// which is several screens of chat.

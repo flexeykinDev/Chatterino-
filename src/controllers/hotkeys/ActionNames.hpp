@@ -310,6 +310,7 @@ inline const std::map<HotkeyCategory, ActionDefinitionMap> actionNames{
           }},
          {"newSplit", ActionDefinition{"Create a new split"}},
          {"newTab", ActionDefinition{"Create a new tab"}},
+         {"openMentions", ActionDefinition{"Open mentions"}},
          {"openSettings", ActionDefinition{"Open settings"}},
          {"openAccountSelector", ActionDefinition{"Open account selector"}},
          {"openTab",
