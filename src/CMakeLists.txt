@@ -932,6 +932,8 @@ set(SOURCE_FILES
         widgets/splits/SplitOverlay.hpp
         widgets/splits/PinnedMessageWidget.cpp
         widgets/splits/PinnedMessageWidget.hpp
+        widgets/splits/PollBannerWidget.cpp
+        widgets/splits/PollBannerWidget.hpp
         )
 
 if (APPLE)

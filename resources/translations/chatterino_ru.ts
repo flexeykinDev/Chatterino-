@@ -184,6 +184,13 @@
     </message>
 </context>
 <context>
+    <name>chatterino::PollBannerWidget</name>
+    <message>
+        <source>done</source>
+        <translation>готово</translation>
+    </message>
+</context>
+<context>
     <name>chatterino::SettingsDialog</name>
     <message>
         <source>General</source>

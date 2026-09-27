@@ -1593,6 +1593,9 @@ void TwitchChannel::refreshPubSub()
 
     getApp()->getTwitchPubSub()->listenToChannelPointRewards(roomId);
     getApp()->getTwitchPubSub()->listenToPinnedChatUpdates(roomId);
+    // Polls are public, so this works on any channel rather than only one the
+    // viewer broadcasts.
+    getApp()->getTwitchPubSub()->listenToPolls(roomId);
 
     if (currentAccount->isAnon())
     {
