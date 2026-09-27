@@ -66,7 +66,8 @@ public:
     bool sendForTest(const QString &text);
 
     /// What the row above the reply box says — the mention being answered, or
-    /// why none of them can be.
+    /// why none of them can be. The whole of it, not the shortened version the
+    /// label shows.
     [[nodiscard]] QString statusText() const;
 
     /// Records everything currently listed as read.
@@ -74,10 +75,14 @@ public:
 
 protected:
     void showEvent(QShowEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
     void rebuildTargets();
     void refreshStatus();
+    /// Shortens the status to what fits, with an ellipsis. Without it the row
+    /// is clipped by the window edge mid-word, which reads as a bug.
+    void applyStatusElision();
     void send();
 
     ChannelPtr mentions_;
@@ -91,6 +96,9 @@ private:
 
     ChannelView *view_ = nullptr;
     QLabel *status_ = nullptr;
+    /// What the status row would say at any width. The label itself holds
+    /// whatever fits.
+    QString statusFull_;
     QLineEdit *input_ = nullptr;
     QPushButton *reply_ = nullptr;
     QPushButton *older_ = nullptr;

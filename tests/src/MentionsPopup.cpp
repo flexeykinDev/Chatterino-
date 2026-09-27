@@ -360,3 +360,36 @@ TEST_F(TestMentionsPopup, readsTheCountThroughTheApplication)
     getSettings()->lastSeenMention.setValue(u"b"_s);
     EXPECT_EQ(MentionsPopup::unreadCount(), 0);
 }
+
+TEST_F(TestMentionsPopup, keepsTheWholeStatusEvenWhenTheRowIsTooNarrowForIt)
+{
+    auto message = mention(u"a"_s, u"forsen"_s, u"Alice"_s,
+                           QString(u'x').repeated(200));
+    this->arrive(message);
+
+    auto *popup = this->build();
+    popup->resize(200, 400);
+
+    // The label shortens what it shows to fit; what the popup says the status
+    // is must stay the whole thing, or anything reading it back — including
+    // these tests — sees an ellipsis instead of the message.
+    EXPECT_TRUE(popup->statusText().contains(u"Alice"_s)) << popup->statusText();
+    EXPECT_TRUE(popup->statusText().contains(u"forsen"_s))
+        << popup->statusText();
+}
+
+TEST_F(TestMentionsPopup, countsAMentionThatArrivesWhileTheWindowIsNotInFront)
+{
+    this->arrive(mention(u"a"_s, u"forsen"_s, u"Alice"_s, u"first"_s));
+
+    auto *popup = this->build();
+    popup->markRead();
+
+    // The window is never active in a headless test, which is the same as it
+    // sitting behind another one: a mention arriving then is still unread.
+    this->arrive(mention(u"b"_s, u"forsen"_s, u"Bob"_s, u"second"_s));
+
+    EXPECT_EQ(unreadMentions(this->mentions->getMessageSnapshot(),
+                             getSettings()->lastSeenMention.getValue()),
+              1);
+}

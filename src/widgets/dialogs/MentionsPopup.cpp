@@ -20,6 +20,8 @@
 #include <QLineEdit>
 #include <QPointer>
 #include <QPushButton>
+#include <QFontMetrics>
+#include <QResizeEvent>
 #include <QShowEvent>
 #include <QVBoxLayout>
 
@@ -203,6 +205,14 @@ MentionsPopup::MentionsPopup(ChannelPtr mentions, ChannelIsOpen channelIsOpen,
             this->mentions_->messageAppended,
             [this](auto &, auto) {
                 this->rebuildTargets();
+
+                // Looking at the list is what reading them means, so one
+                // arriving while this window is in front must not leave a
+                // count sitting on a button beside a window showing it.
+                if (this->isVisible() && this->isActiveWindow())
+                {
+                    this->markRead();
+                }
             });
     }
 
@@ -319,7 +329,7 @@ void MentionsPopup::step(int delta)
 
 QString MentionsPopup::statusText() const
 {
-    return this->status_ == nullptr ? QString() : this->status_->text();
+    return this->statusFull_;
 }
 
 void MentionsPopup::refreshStatus()
@@ -341,8 +351,9 @@ void MentionsPopup::refreshStatus()
 
     if (canReply)
     {
-        this->status_->setText(describeMention(*target));
+        this->statusFull_ = describeMention(*target);
         this->status_->setToolTip(target->messageText);
+        this->applyStatusElision();
         return;
     }
 
@@ -351,7 +362,8 @@ void MentionsPopup::refreshStatus()
     if (this->mentions_ == nullptr ||
         this->mentions_->getMessageSnapshot().empty())
     {
-        this->status_->setText(tr("Nobody has mentioned you yet."));
+        this->statusFull_ = tr("Nobody has mentioned you yet.");
+        this->applyStatusElision();
         return;
     }
 
@@ -370,12 +382,39 @@ void MentionsPopup::refreshStatus()
                                        : false);
         if (!problem.isEmpty())
         {
-            this->status_->setText(problem);
+            this->statusFull_ = problem;
+            this->applyStatusElision();
             return;
         }
     }
 
-    this->status_->setText(tr("None of these can be replied to."));
+    this->statusFull_ = tr("None of these can be replied to.");
+    this->applyStatusElision();
+}
+
+void MentionsPopup::applyStatusElision()
+{
+    if (this->status_ == nullptr)
+    {
+        return;
+    }
+
+    auto width = this->status_->width();
+    if (width <= 0)
+    {
+        // Before the first layout there is no width to fit anything into.
+        this->status_->setText(this->statusFull_);
+        return;
+    }
+
+    this->status_->setText(this->status_->fontMetrics().elidedText(
+        this->statusFull_, Qt::ElideRight, width));
+}
+
+void MentionsPopup::resizeEvent(QResizeEvent *event)
+{
+    BasePopup::resizeEvent(event);
+    this->applyStatusElision();
 }
 
 void MentionsPopup::send()
