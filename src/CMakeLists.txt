@@ -503,6 +503,8 @@ set(SOURCE_FILES
         providers/twitch/IrcMessageHandler.hpp
         providers/twitch/ChatModes.cpp
         providers/twitch/ChatModes.hpp
+        providers/twitch/MassGift.cpp
+        providers/twitch/MassGift.hpp
         providers/twitch/PollState.cpp
         providers/twitch/PollState.hpp
         providers/twitch/PubSubClient.cpp

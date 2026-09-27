@@ -13,6 +13,11 @@ namespace chatterino {
 
 [[maybe_unused]] inline const char *const ANONYMOUS_USERNAME = "justinfan64537";
 
+/// Twitch attributes an anonymous gift to a real account with this id, whose
+/// display name is "AnAnonymousGifter". Anything that names a gifter has to
+/// check for it, so it lives here rather than in whichever file noticed first.
+inline constexpr QStringView ANONYMOUS_GIFTER_ID = u"274598607";
+
 inline constexpr int TWITCH_MESSAGE_LIMIT = 500;
 
 inline QByteArray getDefaultClientID()

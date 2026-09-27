@@ -37,10 +37,12 @@
 #include "providers/seventv/SeventvEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/ChannelPointReward.hpp"
+#include "providers/twitch/MassGift.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchBadge.hpp"
 #include "providers/twitch/TwitchBadges.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
+#include "providers/twitch/TwitchCommon.hpp"
 #include "providers/twitch/TwitchIrc.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
 #include "providers/twitch/TwitchUsers.hpp"
@@ -87,8 +89,6 @@ const QRegularExpression mentionRegex("^@" + regexHelpString);
 const QRegularExpression allUsernamesMentionRegex("^" + regexHelpString);
 
 const QRegularExpression SPACE_REGEX("\\s");
-
-constexpr QStringView ANONYMOUS_GIFTER_ID = u"274598607";
 
 struct HypeChatPaidLevel {
     std::chrono::seconds duration;
@@ -723,6 +723,113 @@ MessagePtrMut MessageBuilder::makeSystemMessageWithUser(
     auto tags = ircMessage.tags();
 
     builder.parseMessageTags(tags, channel, true);
+
+    return builder.release();
+}
+
+MessagePtrMut MessageBuilder::makeMassGiftMessage(const MassGift &gift,
+                                                 TwitchChannel *channel)
+{
+    const auto *userDataController = getApp()->getUserData();
+
+    MessageBuilder builder;
+    builder.emplace<TimestampElement>(gift.receivedAt.time());
+
+    // An anonymous gift is attributed to a real account whose display name
+    // must not be shown, so its name is left as Twitch worded it — "An
+    // anonymous user" — and nothing is made clickable.
+    auto gifterColor =
+        gift.anonymous
+            ? MessageColor(MessageColor::System)
+            : twitch::getUserColor(
+                  {
+                      .userLogin = gift.gifterLogin,
+                      .userID = gift.gifterUserId,
+                      .userDataController = userDataController,
+                      .channelChatters = channel,
+                      .color = QColor::fromString(gift.gifterColor),
+                  })
+                  .value_or(MessageColor::System);
+
+    for (const auto &word :
+         gift.announcement.split(SPACE_REGEX, Qt::SkipEmptyParts))
+    {
+        if (!gift.anonymous && !gift.gifterDisplayName.isEmpty() &&
+            word == gift.gifterDisplayName)
+        {
+            builder.emplace<MentionElement>(gift.gifterDisplayName,
+                                            gift.gifterLogin,
+                                            MessageColor::System, gifterColor);
+            continue;
+        }
+
+        builder.appendOrEmplaceText(word, MessageColor::System);
+    }
+
+    auto text = gift.announcement;
+
+    auto view = massGiftRecipientsView(gift);
+    if (!view.shown.empty())
+    {
+        // The template is split rather than filled in, so the names can be
+        // mentions. Splitting on the placeholder keeps whatever word order a
+        // translation puts them in.
+        auto tmpl = massGiftRecipientsTemplate();
+        auto at = tmpl.indexOf(u"%1"_s);
+        auto prefix = at < 0 ? tmpl : tmpl.left(at);
+        auto suffix = at < 0 ? QString() : tmpl.mid(at + 2);
+
+        auto appendWords = [&builder](const QString &part) {
+            for (const auto &word : part.split(SPACE_REGEX, Qt::SkipEmptyParts))
+            {
+                builder.appendOrEmplaceText(word, MessageColor::System);
+            }
+        };
+
+        appendWords(prefix);
+
+        for (size_t i = 0; i < view.shown.size(); i++)
+        {
+            const auto &recipient = view.shown[i];
+            bool last = i + 1 == view.shown.size();
+
+            auto color = twitch::getUserColor(
+                             {
+                                 .userLogin = recipient.login,
+                                 .userID = recipient.userId,
+                                 .userDataController = userDataController,
+                                 .channelChatters = channel,
+                             })
+                             .value_or(MessageColor::System);
+
+            auto *mention = builder.emplace<MentionElement>(
+                recipient.displayName, recipient.login, MessageColor::System,
+                color);
+            if (!last)
+            {
+                // The comma belongs to the list, not to the name, so it must
+                // not be part of what clicking the name selects.
+                mention->setTrailingSpace(false);
+                builder.emplace<TextElement>(u","_s, MessageElementFlag::Text,
+                                             MessageColor::System);
+            }
+        }
+
+        appendWords(massGiftMoreText(view.more));
+        appendWords(suffix);
+
+        text = text % u' ' % massGiftRecipientsText(gift);
+    }
+
+    builder->id = gift.messageId;
+    builder->serverReceivedTime = gift.receivedAt;
+    builder->flags.set(MessageFlag::System);
+    builder->flags.set(MessageFlag::DoNotTriggerNotification);
+    // The same flag the individual gifts carry, so the summary is highlighted
+    // exactly as the messages it stands in for would have been.
+    builder->flags.set(MessageFlag::Subscription);
+    builder->messageText = text;
+    builder->searchText = text;
 
     return builder.release();
 }
