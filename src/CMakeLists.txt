@@ -421,6 +421,8 @@ set(SOURCE_FILES
         providers/companion/GlobalBanRegistry.hpp
         providers/companion/PresenceRegistry.cpp
         providers/companion/PresenceRegistry.hpp
+        providers/companion/ShadowBacklog.cpp
+        providers/companion/ShadowBacklog.hpp
         providers/companion/ShadowChannel.cpp
         providers/companion/ShadowChannel.hpp
         providers/companion/TypingNotifier.cpp

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "common/Channel.hpp"
+#include "providers/companion/ShadowBacklog.hpp"
 
 #include <pajlada/signals/signalholder.hpp>
 #include <QCoreApplication>
@@ -71,6 +72,8 @@ private:
     /// Messages sent and not yet answered for, so a refusal can name the one
     /// it is about rather than being a bare complaint.
     QHash<QString, QString> pending_;
+    /// What has already been shown, so rejoining does not replay it.
+    ShadowBacklog backlog_;
 
     pajlada::Signals::SignalHolder signalHolder_;
     /// The socket outlives this room, so its connections are held and cut by

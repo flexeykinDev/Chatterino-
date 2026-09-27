@@ -50,9 +50,15 @@ ShadowChannel::ShadowChannel(const QString &login)
             }
 
             // Backfill is what makes this a room rather than a broadcast: the
-            // conversation was going on before this window opened.
+            // conversation was going on before this window opened. A rejoin
+            // sends it all again, though, so only what is new is shown.
             for (const auto &message : history)
             {
+                if (!this->backlog_.isNew(message.id))
+                {
+                    continue;
+                }
+
                 this->addCompanionMessage(message);
             }
         }));
@@ -75,8 +81,13 @@ ShadowChannel::ShadowChannel(const QString &login)
 
     this->socketConnections_.push_back(QObject::connect(
         socket, &CompanionSocket::messageAccepted, socket,
-                     [this](const QString &nonce, qint64 /*id*/) {
+                     [this](const QString &nonce, qint64 id) {
                          this->pending_.remove(nonce);
+
+                         // Own messages are shown before the server has given
+                         // them an id, so it has to be learned here or a
+                         // reconnect replays them as unseen history.
+                         this->backlog_.seen(id);
                      }));
 
     this->socketConnections_.push_back(QObject::connect(
@@ -212,6 +223,8 @@ void ShadowChannel::sendMessage(const QString &message)
 
 void ShadowChannel::addCompanionMessage(const CompanionMessage &message)
 {
+    this->backlog_.seen(message.id);
+
     MessageBuilder builder;
     builder.emplace<TimestampElement>(message.sentAt.time());
     builder
