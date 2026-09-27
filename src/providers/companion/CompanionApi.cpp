@@ -114,7 +114,16 @@ bool CompanionApi::isConfigured() const
 
 std::optional<QString> CompanionApi::token()
 {
-    auto account = getApp()->getAccounts()->twitch.getCurrent();
+    // The account controller is absent in an application built without one,
+    // where reaching through it is an access violation rather than a failed
+    // assertion once asserts are compiled out.
+    auto *accounts = getApp()->getAccounts();
+    if (accounts == nullptr)
+    {
+        return std::nullopt;
+    }
+
+    auto account = accounts->twitch.getCurrent();
     if (!account || account->isAnon())
     {
         return std::nullopt;

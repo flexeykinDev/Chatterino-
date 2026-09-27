@@ -5,6 +5,7 @@
 #pragma once
 
 #include "providers/companion/CompanionApi.hpp"
+#include "providers/companion/CompanionHealth.hpp"
 #include "providers/companion/GlobalBanRegistry.hpp"
 #include "singletons/Settings.hpp"
 
@@ -46,6 +47,14 @@ public:
 
     [[nodiscard]] bool isEnabled() const;
 
+    /// Whether the service is answering, and why not when it is not. Emitted
+    /// on change as {@link statusChanged}.
+    [[nodiscard]] CompanionStatus status() const;
+
+    /// Re-reads whether anybody is signed in. Worth calling after a login, so
+    /// the reason shown stops being "waiting for a Twitch login".
+    void refreshAvailability();
+
     [[nodiscard]] GlobalBanRegistry &globalBans();
     [[nodiscard]] const GlobalBanRegistry &globalBans() const;
 
@@ -69,13 +78,23 @@ public:
     /// Sends whatever is queued right now, ignoring the batching delay.
     void flush();
 
+Q_SIGNALS:
+    /// The reason the companion features are, or are not, doing anything has
+    /// changed.
+    void statusChanged(CompanionStatus status);
+
 private:
     void scheduleFlush();
     /// Relayouts every channel view, because a marker appearing changes the
     /// width of the messages that carry it.
     static void relayout();
 
+    /// Records the outcome of every request, so "the service is down" can be
+    /// told apart from "nobody here has been banned anywhere".
+    void noteResult(bool ok);
+
     CompanionApi api_;
+    CompanionHealth health_;
     GlobalBanRegistry registry_;
 
     /// Long enough that a burst of messages becomes one request, short enough

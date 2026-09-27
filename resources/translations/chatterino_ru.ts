@@ -2,6 +2,29 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
 <context>
+    <name>CompanionHealth</name>
+    <message>
+        <source>Off. Nothing is contacted until an address is set.</source>
+        <translation>Выключено. Пока адрес не указан, никаких запросов не отправляется.</translation>
+    </message>
+    <message>
+        <source>Waiting for a Twitch login. The service identifies you by your own token, so it can answer nothing while you are signed out.</source>
+        <translation>Ждём вход через Twitch. Сервис узнаёт вас по вашему токену, поэтому без входа ответить ему нечем.</translation>
+    </message>
+    <message>
+        <source>Configured. Nothing asked yet.</source>
+        <translation>Адрес указан. Запросов ещё не было.</translation>
+    </message>
+    <message>
+        <source>Answering.</source>
+        <translation>Отвечает.</translation>
+    </message>
+    <message>
+        <source>Not answering. Companion features show nothing at all while this is the case, which looks the same as having nothing to show.</source>
+        <translation>Не отвечает. Пока это так, связанные функции ничего не показывают — и это выглядит ровно так же, как если бы показывать было нечего.</translation>
+    </message>
+</context>
+<context>
     <name>GlobalBanMarkerElement</name>
     <message numerus="yes">
         <source>Banned on %n other channel(s). Click to see where and why.</source>

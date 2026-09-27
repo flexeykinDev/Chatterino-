@@ -13,6 +13,7 @@
 #include "providers/recentmessages/Api.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
+#include "providers/companion/CompanionController.hpp"
 #include "singletons/CrashHandler.hpp"
 #include "singletons/Fonts.hpp"
 #include "singletons/Localization.hpp"
@@ -975,6 +976,20 @@ void GeneralPage::initLayout(GeneralPageView &layout)
     SettingWidget::lineEdit("Address", s.companionUrl,
                             "https://example.com/api")
         ->addTo(layout);
+
+    // Without this, a service that is down is indistinguishable from a chat
+    // where nobody has been banned anywhere: both show nothing at all.
+    {
+        auto *companion = getApp()->getCompanion();
+        auto *status = new QLabel(describeCompanionStatus(companion->status()));
+        status->setWordWrap(true);
+        QObject::connect(companion, &CompanionController::statusChanged, status,
+                         [status](CompanionStatus newStatus) {
+                             status->setText(
+                                 describeCompanionStatus(newStatus));
+                         });
+        layout.addWidget(status);
+    }
 
     SettingWidget::checkbox("Mark chatters banned on other channels",
                             s.showGlobalBanMarker)

@@ -407,6 +407,8 @@ set(SOURCE_FILES
         providers/companion/CompanionApi.hpp
         providers/companion/CompanionController.cpp
         providers/companion/CompanionController.hpp
+        providers/companion/CompanionHealth.cpp
+        providers/companion/CompanionHealth.hpp
         providers/companion/CompanionProtocol.cpp
         providers/companion/CompanionProtocol.hpp
         providers/companion/GlobalBan.cpp

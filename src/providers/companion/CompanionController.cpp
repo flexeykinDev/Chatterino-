@@ -5,10 +5,29 @@
 #include "providers/companion/CompanionController.hpp"
 
 #include "Application.hpp"
+#include "controllers/accounts/AccountController.hpp"
+#include "providers/twitch/TwitchAccount.hpp"
 #include "providers/companion/GlobalBan.hpp"
 #include "singletons/WindowManager.hpp"
 
 namespace {
+
+/// The signed-in Twitch account, or nothing.
+///
+/// Null-checks the account controller rather than assuming it: this controller
+/// also exists in an application built without one, where reaching through it
+/// is an access violation rather than a failed assertion once asserts are
+/// compiled out.
+chatterino::TwitchAccount *currentAccount()
+{
+    auto *accounts = chatterino::getApp()->getAccounts();
+    if (accounts == nullptr)
+    {
+        return nullptr;
+    }
+
+    return accounts->twitch.getCurrent().get();
+}
 
 /// How long a question waits for company before it is asked.
 constexpr int flushDelayMs = 400;
@@ -37,6 +56,16 @@ void CompanionController::followSetting(QStringSetting &setting)
             this->setBaseUrl(url);
         },
         this->signalHolder_);
+
+    // Signing in changes what the service can answer, and the reason shown
+    // while signed out should stop being shown the moment it stops applying.
+    if (auto *accounts = getApp()->getAccounts(); accounts != nullptr)
+    {
+        this->signalHolder_.managedConnect(accounts->twitch.currentUserChanged,
+                                           [this] {
+                                               this->refreshAvailability();
+                                           });
+    }
 }
 
 void CompanionController::setBaseUrl(const QString &baseUrl)
@@ -46,6 +75,7 @@ void CompanionController::setBaseUrl(const QString &baseUrl)
     this->api_.setBaseUrl(baseUrl);
     this->registry_.clear();
     this->flushTimer_.stop();
+    this->refreshAvailability();
 
     if (hadAnswers)
     {
@@ -60,6 +90,33 @@ void CompanionController::setBaseUrl(const QString &baseUrl)
 bool CompanionController::isEnabled() const
 {
     return this->api_.isConfigured();
+}
+
+CompanionStatus CompanionController::status() const
+{
+    return this->health_.status();
+}
+
+void CompanionController::refreshAvailability()
+{
+    auto *account = currentAccount();
+    auto signedIn = account != nullptr && !account->isAnon();
+
+    if (this->health_.setAvailability(this->api_.isConfigured(), signedIn))
+    {
+        Q_EMIT this->statusChanged(this->health_.status());
+    }
+}
+
+void CompanionController::noteResult(bool ok)
+{
+    auto changed = ok ? this->health_.recordSuccess()
+                      : this->health_.recordFailure();
+
+    if (changed)
+    {
+        Q_EMIT this->statusChanged(this->health_.status());
+    }
 }
 
 GlobalBanRegistry &CompanionController::globalBans()
@@ -119,6 +176,7 @@ void CompanionController::flush()
             [this, channelId, userIds](std::optional<QHash<QString, int>>
                                            markers) {
                 this->inFlight_--;
+                this->noteResult(markers.has_value());
 
                 if (!markers)
                 {
@@ -152,7 +210,12 @@ void CompanionController::fetchHistory(
     const QString &offenderId, const QString &channelId,
     const std::function<void(std::optional<GlobalBanSummary>)> &callback)
 {
-    this->api_.fetchHistory(offenderId, channelId, callback);
+    this->api_.fetchHistory(
+        offenderId, channelId,
+        [this, callback](std::optional<GlobalBanSummary> summary) {
+            this->noteResult(summary.has_value());
+            callback(std::move(summary));
+        });
 }
 
 void CompanionController::vouch(const QString &offenderId,
