@@ -421,6 +421,8 @@ set(SOURCE_FILES
         providers/companion/GlobalBanRegistry.hpp
         providers/companion/TypingNotifier.cpp
         providers/companion/TypingNotifier.hpp
+        providers/companion/TypingTracker.cpp
+        providers/companion/TypingTracker.hpp
 
         providers/emoji/Emojis.cpp
         providers/emoji/Emojis.hpp

@@ -27,6 +27,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/RatelimitBucket.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Hotkeys.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/TypingNotifier.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/TypingTracker.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/UtilTwitch.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/WordFlags.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/IrcHelpers.cpp

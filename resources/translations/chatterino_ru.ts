@@ -37,6 +37,28 @@
     </message>
 </context>
 <context>
+    <name>TypingTracker</name>
+    <message>
+        <source>%1 is typing…</source>
+        <extracomment>%1 is a chatter&apos;s name.</extracomment>
+        <translation>%1 печатает…</translation>
+    </message>
+    <message>
+        <source>%1 and %2 are typing…</source>
+        <extracomment>%1 and %2 are chatters&apos; names.</extracomment>
+        <translation>%1 и %2 печатают…</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n people are typing…</source>
+        <extracomment>%n is how many people are typing, always three or more.</extracomment>
+        <translation>
+            <numerusform>%n человек печатает…</numerusform>
+            <numerusform>%n человека печатают…</numerusform>
+            <numerusform>%n человек печатают…</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>chatterino::GlobalBanHistoryPopup</name>
     <message>
         <source>Ban history</source>
