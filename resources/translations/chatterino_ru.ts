@@ -95,6 +95,21 @@
     </message>
 </context>
 <context>
+    <name>MassGift</name>
+    <message>
+        <source>Gifted to %1</source>
+        <translation>Получили: %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>and %n more</source>
+        <translation>
+            <numerusform>и ещё %n</numerusform>
+            <numerusform>и ещё %n</numerusform>
+            <numerusform>и ещё %n</numerusform>
+        </translation>
+    </message>
+</context>
+<context>
     <name>PollDraft</name>
     <message>
         <source>Give the poll a question.</source>

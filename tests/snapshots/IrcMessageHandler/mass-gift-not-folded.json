@@ -1,0 +1,137 @@
+{
+    "input": "@badges=;color=;display-name=Gifter;emotes=;id=8a8f7c9c-0000-4000-8000-000000000003;login=gifter;mod=0;msg-id=subgift;msg-param-community-gift-id=1111111111111111111;msg-param-gift-months=1;msg-param-months=1;msg-param-origin-id=1111111111111111111;msg-param-recipient-display-name=Lucky;msg-param-recipient-id=555;msg-param-recipient-user-name=lucky;msg-param-sender-count=0;msg-param-sub-plan=1000;room-id=11148817;subscriber=0;system-msg=Gifter\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\sLucky!;tmi-sent-ts=1700000000001;user-id=1337;user-type= :tmi.twitch.tv USERNOTICE #pajlada",
+    "output": [
+        {
+            "channelName": "",
+            "count": 1,
+            "displayName": "",
+            "elements": [
+                {
+                    "element": {
+                        "color": "System",
+                        "flags": "Timestamp",
+                        "link": {
+                            "type": "None",
+                            "value": ""
+                        },
+                        "style": "TimestampMedium",
+                        "tooltip": "",
+                        "trailingSpace": true,
+                        "type": "TextElement",
+                        "words": [
+                            "22:13"
+                        ]
+                    },
+                    "flags": "Timestamp",
+                    "format": "",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "time": "22:13:20",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TimestampElement"
+                },
+                {
+                    "color": "Text",
+                    "fallbackColor": "System",
+                    "flags": "Text|Mention",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "MentionElement",
+                    "userColor": "System",
+                    "userLoginName": "gifter",
+                    "words": [
+                        "Gifter"
+                    ]
+                },
+                {
+                    "color": "System",
+                    "flags": "Text",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TextElement",
+                    "words": [
+                        "gifted",
+                        "a",
+                        "Tier",
+                        "1",
+                        "sub",
+                        "to"
+                    ]
+                },
+                {
+                    "color": "Text",
+                    "fallbackColor": "System",
+                    "flags": "Text|Mention",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": false,
+                    "type": "MentionElement",
+                    "userColor": "System",
+                    "userLoginName": "lucky",
+                    "words": [
+                        "Lucky"
+                    ]
+                },
+                {
+                    "color": "System",
+                    "flags": "Text",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TextElement",
+                    "words": [
+                        "!"
+                    ]
+                }
+            ],
+            "externalBadges": [
+            ],
+            "flags": "System|DoNotTriggerNotification|Subscription",
+            "frozen": false,
+            "id": "",
+            "localizedName": "",
+            "loginName": "",
+            "messageText": "Gifter gifted a Tier 1 sub to Lucky!",
+            "searchText": "Gifter gifted a Tier 1 sub to Lucky!",
+            "serverReceivedTime": "",
+            "timeoutUser": "",
+            "twitchBadgeInfos": {
+            },
+            "twitchBadges": [
+            ],
+            "userID": "",
+            "usernameColor": "#ff000000"
+        }
+    ],
+    "params": {
+        "prevMessages": [
+            "@badges=;color=;display-name=Gifter;emotes=;id=8a8f7c9c-0000-4000-8000-000000000001;login=gifter;mod=0;msg-id=submysterygift;msg-param-community-gift-id=1111111111111111111;msg-param-mass-gift-count=5;msg-param-origin-id=1111111111111111111;msg-param-sender-count=137;msg-param-sub-plan=1000;room-id=11148817;subscriber=0;system-msg=Gifter\\sis\\sgifting\\s5\\sTier\\s1\\sSubs\\sto\\spajlada's\\scommunity!;tmi-sent-ts=1700000000000;user-id=1337;user-type= :tmi.twitch.tv USERNOTICE #pajlada"
+        ]
+    },
+    "settings": {
+        "twitch": {
+            "collapseMassGifts": false
+        }
+    }
+}

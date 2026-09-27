@@ -586,6 +586,15 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                             s.hideMessageTimestampsWhenLive)
         ->addTo(layout);
 
+    SettingWidget::checkbox("Fold community sub gifts into one message",
+                            s.collapseMassGifts)
+        ->setTooltip(
+            "Twitch sends a separate message for every sub in a community "
+            "gift, so a hundred-sub gift buries several screens of chat. This "
+            "shows one message instead, naming who received them. A sub gifted "
+            "to you is still shown on its own.")
+        ->addTo(layout);
+
     SettingWidget::checkbox("Correct ASCII art wrapping", s.wrapAsciiArt)
         ->setTooltip("Limit the width of messages containing ASCII art to "
                      "match the width of Twitch web chat.")

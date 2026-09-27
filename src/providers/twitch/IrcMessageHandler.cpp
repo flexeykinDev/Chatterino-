@@ -17,6 +17,7 @@
 #include "messages/MessageElement.hpp"
 #include "messages/MessageSink.hpp"
 #include "messages/MessageThread.hpp"
+#include "providers/twitch/MassGift.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchAccountManager.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
@@ -52,6 +53,32 @@ const QSet<QString> SPECIAL_MESSAGE_TYPES{
     "modiversary",         // Mod anniversary.
     "socialsharingbadge",  // social media badge from sharing clips
 };
+
+/// Whether a Twitch user id is the account this client is signed in as.
+///
+/// Answers false when there is no account, which is what an anonymous session
+/// and a test harness both look like.
+bool isOwnUserId(const QString &userId)
+{
+    if (userId.isEmpty())
+    {
+        return false;
+    }
+
+    auto *accounts = getApp()->getAccounts();
+    if (accounts == nullptr)
+    {
+        return false;
+    }
+
+    auto account = accounts->twitch.getCurrent();
+    if (account == nullptr)
+    {
+        return false;
+    }
+
+    return account->getUserId() == userId;
+}
 
 /// MessageFlag::Subscription message types
 /// This is duplicated with SUB_MESSAGE_TYPES in MessageBuilder.cpp until the `isSubscriptionMessage` parameter
@@ -764,6 +791,73 @@ void IrcMessageHandler::parseUserNoticeMessageInto(Communi::IrcMessage *message,
         }))
     {
         return;
+    }
+
+    // A community sub gift is announced once and then delivered as a separate
+    // message per recipient. Fold the deliveries into the announcement, or a
+    // hundred-sub gift is a hundred and one messages.
+    if (getSettings()->collapseMassGifts)
+    {
+        auto &massGifts = channel->massGifts();
+
+        // The summary is rebuilt and swapped in as recipients arrive, which
+        // needs the channel's own buffer. When messages are being parsed into
+        // something else — loading history, for instance — there is nothing to
+        // swap, so the summary stands as announced and the gifts are still
+        // folded away.
+        auto *replaceable =
+            static_cast<MessageSink *>(channel) == &sink ? channel : nullptr;
+
+        if (auto announced = parseMassGiftAnnouncement(tags))
+        {
+            announced->receivedAt = calculateMessageTime(message);
+
+            auto *gift = massGifts.announce(*std::move(announced));
+            auto summary = MessageBuilder::makeMassGiftMessage(*gift, channel);
+            massGifts.setSummary(gift->id, summary);
+
+            sink.addMessage(summary, MessageContext::Original);
+            return;
+        }
+
+        if (msgType == u"submysterygift"_s)
+        {
+            // The announcement did not parse, so this gift is about to arrive
+            // as a hundred separate messages with nothing to say why. The tags
+            // are the only way to find out what changed, so say them rather
+            // than failing quietly.
+            qCWarning(chatterinoTwitch)
+                << "a community sub gift was announced but could not be read, "
+                   "so its gifts will not be folded:"
+                << message->toData();
+        }
+
+        if (msgType == "subgift")
+        {
+            auto giftId = massGiftIdOf(tags);
+            auto recipient = parseMassGiftRecipient(tags);
+
+            if (auto *gift = massGifts.absorb(giftId, recipient))
+            {
+                if (replaceable != nullptr)
+                {
+                    if (auto previous = massGifts.summaryOf(giftId))
+                    {
+                        auto updated =
+                            MessageBuilder::makeMassGiftMessage(*gift, channel);
+                        replaceable->replaceMessage(previous, updated);
+                        massGifts.setSummary(giftId, updated);
+                    }
+                }
+
+                // Your own sub is worth seeing even inside somebody else's
+                // pile, so that one falls through and is shown as well.
+                if (!isOwnUserId(recipient.userId))
+                {
+                    return;
+                }
+            }
+        }
     }
 
     if (msgType == "subgift")

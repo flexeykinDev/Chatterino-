@@ -268,6 +268,11 @@ public:
     /// have a session live. Only has an effect when the address above is set.
     BoolSetting showPresenceDot = {"/companion/showPresenceDot", true};
 
+    /// Fold a community sub gift into one message instead of showing every
+    /// gift in it. A hundred-sub gift is otherwise a hundred and one messages,
+    /// which is several screens of chat.
+    BoolSetting collapseMassGifts = {"/twitch/collapseMassGifts", true};
+
     /// Show a Twitch channel's profile picture on its tab instead of its name.
     /// Tabs become square, and a tab whose channel has no picture, or which is
     /// not a single Twitch channel, keeps its name.

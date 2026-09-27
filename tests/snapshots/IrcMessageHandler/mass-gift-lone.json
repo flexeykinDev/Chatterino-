@@ -1,0 +1,127 @@
+{
+    "input": "@badges=;color=;display-name=Solo;emotes=;id=8a8f7c9c-0000-4000-8000-000000000004;login=solo;mod=0;msg-id=subgift;msg-param-community-gift-id=9999999999999999999;msg-param-gift-months=1;msg-param-months=1;msg-param-origin-id=9999999999999999999;msg-param-recipient-display-name=Friend;msg-param-recipient-id=666;msg-param-recipient-user-name=friend;msg-param-sender-count=0;msg-param-sub-plan=1000;room-id=11148817;subscriber=0;system-msg=Solo\\sgifted\\sa\\sTier\\s1\\ssub\\sto\\sFriend!;tmi-sent-ts=1700000000002;user-id=42;user-type= :tmi.twitch.tv USERNOTICE #pajlada",
+    "output": [
+        {
+            "channelName": "",
+            "count": 1,
+            "displayName": "",
+            "elements": [
+                {
+                    "element": {
+                        "color": "System",
+                        "flags": "Timestamp",
+                        "link": {
+                            "type": "None",
+                            "value": ""
+                        },
+                        "style": "TimestampMedium",
+                        "tooltip": "",
+                        "trailingSpace": true,
+                        "type": "TextElement",
+                        "words": [
+                            "22:13"
+                        ]
+                    },
+                    "flags": "Timestamp",
+                    "format": "",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "time": "22:13:20",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TimestampElement"
+                },
+                {
+                    "color": "Text",
+                    "fallbackColor": "System",
+                    "flags": "Text|Mention",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "MentionElement",
+                    "userColor": "System",
+                    "userLoginName": "solo",
+                    "words": [
+                        "Solo"
+                    ]
+                },
+                {
+                    "color": "System",
+                    "flags": "Text",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TextElement",
+                    "words": [
+                        "gifted",
+                        "a",
+                        "Tier",
+                        "1",
+                        "sub",
+                        "to"
+                    ]
+                },
+                {
+                    "color": "Text",
+                    "fallbackColor": "System",
+                    "flags": "Text|Mention",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": false,
+                    "type": "MentionElement",
+                    "userColor": "System",
+                    "userLoginName": "friend",
+                    "words": [
+                        "Friend"
+                    ]
+                },
+                {
+                    "color": "System",
+                    "flags": "Text",
+                    "link": {
+                        "type": "None",
+                        "value": ""
+                    },
+                    "style": "ChatMedium",
+                    "tooltip": "",
+                    "trailingSpace": true,
+                    "type": "TextElement",
+                    "words": [
+                        "!"
+                    ]
+                }
+            ],
+            "externalBadges": [
+            ],
+            "flags": "System|DoNotTriggerNotification|Subscription",
+            "frozen": false,
+            "id": "",
+            "localizedName": "",
+            "loginName": "",
+            "messageText": "Solo gifted a Tier 1 sub to Friend!",
+            "searchText": "Solo gifted a Tier 1 sub to Friend!",
+            "serverReceivedTime": "",
+            "timeoutUser": "",
+            "twitchBadgeInfos": {
+            },
+            "twitchBadges": [
+            ],
+            "userID": "",
+            "usernameColor": "#ff000000"
+        }
+    ]
+}

@@ -507,6 +507,11 @@ void TwitchChannel::setSeventvEmotes(std::shared_ptr<const EmoteMap> &&map)
     this->seventvEmotes_.set(std::move(map));
 }
 
+MassGiftTracker &TwitchChannel::massGifts()
+{
+    return this->massGifts_;
+}
+
 void TwitchChannel::addQueuedRedemption(const QString &rewardId,
                                         const QString &originalContent,
                                         Communi::IrcMessage *message)

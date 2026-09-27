@@ -14,6 +14,7 @@
 #include "providers/ffz/FfzEmotes.hpp"
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/eventsub/SubscriptionHandle.hpp"
+#include "providers/twitch/MassGift.hpp"
 #include "providers/twitch/TwitchEmotes.hpp"
 #include "util/QStringHash.hpp"
 #include "util/ThreadGuard.hpp"
@@ -221,6 +222,13 @@ public:
     QString roomId() const;
     SharedAccessGuard<const RoomModes> accessRoomModes() const;
     SharedAccessGuard<const StreamStatus> accessStreamStatus() const;
+
+    /// The community sub gifts this channel has announced but not finished
+    /// sending, so their individual gifts can be folded into one message.
+    ///
+    /// Not guarded: like the queued redemptions beside it, this is only touched
+    /// while handling an IRC message.
+    MassGiftTracker &massGifts();
 
     /**
      * Records that the channel is no longer joined.
@@ -585,6 +593,7 @@ private:
     UniqueAccess<std::map<QString, ChannelPointReward>> channelPointRewards_;
     boost::circular_buffer_space_optimized<QueuedRedemption>
         waitingRedemptions_{MAX_QUEUED_REDEMPTIONS};
+    MassGiftTracker massGifts_;
 
     bool mod_ = false;
     bool vip_ = false;

@@ -702,3 +702,187 @@ TEST_P(TestIrcMessageHandlerP, CloneElements)
         }
     }
 }
+
+namespace {
+
+/// A community sub gift and two of the gifts it delivers.
+/// Settings with somebody signed in, so a gift addressed to the reader can be
+/// told apart from one addressed to anybody else.
+const QByteArray MASS_GIFT_SETTINGS{R"!({
+    "accounts": {
+        "uid117166826": {
+            "username": "testaccount_420",
+            "userID": "117166826",
+            "clientID": "abc",
+            "oauthToken": "def"
+        },
+        "current": "testaccount_420"
+    }
+})!"_ba};
+
+const QString MASS_GIFT_ANNOUNCEMENT =
+    R"(@badges=;color=;display-name=Gifter;emotes=;id=8a8f7c9c-0000-4000-8000-000000000001;login=gifter;mod=0;msg-id=submysterygift;msg-param-community-gift-id=1111111111111111111;msg-param-mass-gift-count=5;msg-param-origin-id=1111111111111111111;msg-param-sender-count=137;msg-param-sub-plan=1000;room-id=11148817;subscriber=0;system-msg=Gifter\sis\sgifting\s5\sTier\s1\sSubs\sto\spajlada's\scommunity!;tmi-sent-ts=1700000000000;user-id=1337;user-type= :tmi.twitch.tv USERNOTICE #pajlada)";
+
+QString massGiftDelivery(QStringView recipient, QStringView recipientId)
+{
+    // A raw string, so the escaped spaces Twitch puts in `system-msg` stay
+    // single backslashes rather than becoming C++ escapes.
+    static const QString TEMPLATE =
+        R"(@badges=;color=;display-name=Gifter;emotes=;id=8a8f7c9c-0000-4000-8000-00000000000%1;login=gifter;mod=0;msg-id=subgift;msg-param-community-gift-id=1111111111111111111;msg-param-gift-months=1;msg-param-months=1;msg-param-origin-id=1111111111111111111;msg-param-recipient-display-name=%2;msg-param-recipient-id=%3;msg-param-recipient-user-name=%4;msg-param-sender-count=0;msg-param-sub-plan=1000;room-id=11148817;subscriber=0;system-msg=Gifter\sgifted\sa\sTier\s1\ssub\sto\s%5!;tmi-sent-ts=1700000000001;user-id=1337;user-type= :tmi.twitch.tv USERNOTICE #pajlada)";
+
+    return QString(TEMPLATE)
+        .arg(recipientId, recipient, recipientId,
+             recipient.toString().toLower(), recipient);
+}
+
+}  // namespace
+
+/// Drives a channel as its own sink, which is what happens live.
+///
+/// The snapshot tests above parse into a separate buffer, so they never reach
+/// the path that swaps an already-shown summary for an updated one. That path
+/// is where this feature can only be seen to work.
+class TestMassGiftFolding : public ::testing::Test
+{
+public:
+    void SetUp() override
+    {
+        this->mockApplication = std::make_unique<MockApplication>(
+            QString::fromUtf8(MASS_GIFT_SETTINGS));
+
+        // Signing an account in reaches for Helix, which is null unless one is
+        // installed first. That is a crash, not a failed call.
+        this->mockHelix = std::make_unique<testing::NiceMock<mock::Helix>>();
+        initializeHelix(this->mockHelix.get());
+        this->mockApplication->accounts.load();
+
+        // No room id is set: the first message's `room-id` tag gives it one,
+        // and nothing on this path needs it anyway.
+        this->channel = std::make_shared<TwitchChannel>(u"pajlada"_s);
+    }
+
+    void TearDown() override
+    {
+        this->channel.reset();
+        this->mockApplication.reset();
+        initializeHelix(nullptr);
+        this->mockHelix.reset();
+    }
+
+    void feed(const QString &line)
+    {
+        auto *ircMessage =
+            Communi::IrcMessage::fromData(line.toUtf8(), nullptr);
+        ASSERT_NE(ircMessage, nullptr) << "did not parse as IRC: " << line;
+        IrcMessageHandler::parseMessageInto(ircMessage, *this->channel,
+                                            this->channel.get());
+        delete ircMessage;
+    }
+
+    std::unique_ptr<MockApplication> mockApplication;
+    std::unique_ptr<testing::NiceMock<mock::Helix>> mockHelix;
+    std::shared_ptr<TwitchChannel> channel;
+};
+
+TEST_F(TestMassGiftFolding, showsTheAnnouncementAsOneMessage)
+{
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+
+    auto messages = this->channel->getMessageSnapshot();
+    ASSERT_EQ(messages.size(), 1u);
+    EXPECT_EQ(messages[0]->messageText,
+              u"Gifter is gifting 5 Tier 1 Subs to pajlada's community!"_s);
+    // The flag the individual gifts carry, so it is highlighted as they were.
+    EXPECT_TRUE(messages[0]->flags.has(MessageFlag::Subscription));
+}
+
+TEST_F(TestMassGiftFolding, addsNoMessagesForTheGiftsItDelivers)
+{
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+    this->feed(massGiftDelivery(u"Lucky", u"555"));
+    this->feed(massGiftDelivery(u"Second", u"556"));
+
+    auto messages = this->channel->getMessageSnapshot();
+    ASSERT_EQ(messages.size(), 1u)
+        << "the gifts were not folded into the announcement";
+}
+
+TEST_F(TestMassGiftFolding, fillsInTheRecipientsAsTheyArrive)
+{
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+    this->feed(massGiftDelivery(u"Lucky", u"555"));
+
+    auto afterOne = this->channel->getMessageSnapshot();
+    ASSERT_EQ(afterOne.size(), 1u);
+    EXPECT_TRUE(afterOne[0]->messageText.contains(u"Lucky"_s))
+        << "the summary did not name the recipient: "
+        << afterOne[0]->messageText;
+
+    this->feed(massGiftDelivery(u"Second", u"556"));
+
+    auto afterTwo = this->channel->getMessageSnapshot();
+    ASSERT_EQ(afterTwo.size(), 1u);
+    EXPECT_TRUE(afterTwo[0]->messageText.contains(u"Lucky"_s));
+    EXPECT_TRUE(afterTwo[0]->messageText.contains(u"Second"_s))
+        << "the second recipient was folded away without being named: "
+        << afterTwo[0]->messageText;
+
+    // Replaced, not added beside: still the same message as far as anything
+    // holding an id is concerned.
+    EXPECT_EQ(afterTwo[0]->id,
+              u"8a8f7c9c-0000-4000-8000-000000000001"_s);
+}
+
+TEST_F(TestMassGiftFolding, namesTheRecipientsClickably)
+{
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+    this->feed(massGiftDelivery(u"Lucky", u"555"));
+
+    auto messages = this->channel->getMessageSnapshot();
+    ASSERT_EQ(messages.size(), 1u);
+
+    bool found = false;
+    for (const auto &element : messages[0]->elements)
+    {
+        const auto *mention = dynamic_cast<const MentionElement *>(element.get());
+        if (mention != nullptr &&
+            element->toJson()["userLoginName"].toString() == u"lucky"_s)
+        {
+            found = true;
+        }
+    }
+
+    EXPECT_TRUE(found) << "the recipient's name was plain text, so clicking it "
+                          "does nothing";
+}
+
+TEST_F(TestMassGiftFolding, showsAGiftToYouEvenInsideAPile)
+{
+    auto account = this->mockApplication->getAccounts()->twitch.getCurrent();
+    ASSERT_NE(account, nullptr);
+    // If this is empty the test would pass for the wrong reason: nothing can
+    // be "your own" gift when there is nobody signed in.
+    ASSERT_EQ(account->getUserId(), u"117166826"_s);
+
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+    this->feed(massGiftDelivery(u"Lucky", u"555"));
+    ASSERT_EQ(this->channel->getMessageSnapshot().size(), 1u);
+
+    this->feed(massGiftDelivery(u"You", account->getUserId()));
+
+    auto messages = this->channel->getMessageSnapshot();
+    ASSERT_EQ(messages.size(), 2u)
+        << "your own sub was folded away, so there is nothing to tell you that "
+           "you got one";
+    EXPECT_TRUE(messages[1]->messageText.contains(u"You"_s));
+}
+
+TEST_F(TestMassGiftFolding, leavesGiftsAloneWhenFoldingIsOff)
+{
+    this->mockApplication->settings.collapseMassGifts.setValue(false);
+
+    this->feed(MASS_GIFT_ANNOUNCEMENT);
+    this->feed(massGiftDelivery(u"Lucky", u"555"));
+
+    EXPECT_EQ(this->channel->getMessageSnapshot().size(), 2u);
+}

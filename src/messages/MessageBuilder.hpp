@@ -43,6 +43,7 @@ struct HelixMinimalUser;
 struct HelixVip;
 using HelixModerator = HelixVip;
 struct ChannelPointReward;
+struct MassGift;
 struct TwitchSpecialOccurrence;
 struct HelixPinnedChatMessage;
 
@@ -239,6 +240,13 @@ public:
     static MessagePtrMut makeSubgiftMessage(Communi::TagsRef tags,
                                             const QTime &time,
                                             TwitchChannel *channel);
+
+    /// The single message that stands in for a whole community sub gift.
+    ///
+    /// Rebuilt from scratch each time a recipient arrives, rather than
+    /// appended to, because a Message is frozen once it has been shown.
+    static MessagePtrMut makeMassGiftMessage(const MassGift &gift,
+                                             TwitchChannel *channel);
 
     static MessagePtrMut makeMissingScopesMessage(const QString &missingScopes);
 
