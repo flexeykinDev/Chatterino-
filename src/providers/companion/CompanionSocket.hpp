@@ -13,6 +13,7 @@
 #include <QTimer>
 
 #include <memory>
+#include <optional>
 
 namespace chatterino {
 
@@ -57,7 +58,19 @@ public:
     /// the time it arrived it would be describing the past.
     void sendTyping(const QString &channelId, bool active);
 
+    /// Says something in a room. Returns the nonce the server will echo, or
+    /// nothing when the socket is down and there was nobody to say it to.
+    ///
+    /// Nothing is queued for later. A message held back and delivered minutes
+    /// afterwards arrives in a conversation that has moved on, which is worse
+    /// than being told it did not send.
+    std::optional<QString> say(const QString &channelId, const QString &body);
+
 Q_SIGNALS:
+    /// The server accepted a message, matched by the nonce {@link say}
+    /// returned.
+    void messageAccepted(const QString &nonce, qint64 id);
+
     /// The socket authenticated. Rooms have been rejoined by the time this
     /// fires.
     void connected();
@@ -70,7 +83,9 @@ Q_SIGNALS:
     void roomJoined(const QString &channelId,
                     const std::vector<CompanionMessage> &history);
     void restricted(const QString &channelId, const QString &reason);
-    void errorReceived(const QString &code, const QString &message);
+    /// `nonce` names the message this is about, when it is about one.
+    void errorReceived(const QString &code, const QString &message,
+                       const QString &nonce);
 
 private:
     class Listener;

@@ -48,6 +48,33 @@
     </message>
 </context>
 <context>
+    <name>ShadowChannel</name>
+    <message>
+        <source>Not sent (%1): %2</source>
+        <translation>Не отправлено (%1): %2</translation>
+    </message>
+    <message>
+        <source>You can no longer speak in this room.</source>
+        <translation>Вы больше не можете писать в этой комнате.</translation>
+    </message>
+    <message>
+        <source>You can no longer speak in this room: %1</source>
+        <translation>Вы больше не можете писать в этой комнате: %1</translation>
+    </message>
+    <message>
+        <source>Open %1 as well: this room follows that channel, and needs it to know which room it is.</source>
+        <translation>Откройте также %1: эта комната привязана к тому каналу и без него не знает, какая она.</translation>
+    </message>
+    <message>
+        <source>This room is not connected, so nothing was sent.</source>
+        <translation>Нет связи с комнатой, поэтому ничего не отправлено.</translation>
+    </message>
+    <message>
+        <source>Not connected, so nothing was sent: %1</source>
+        <translation>Нет связи, поэтому ничего не отправлено: %1</translation>
+    </message>
+</context>
+<context>
     <name>TypingTracker</name>
     <message>
         <source>%1 is typing…</source>

@@ -25,6 +25,7 @@
 #include "providers/twitch/IrcMessageHandler.hpp"
 #include "providers/twitch/PubSubManager.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
+#include "providers/companion/ShadowChannel.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/WindowManager.hpp"
@@ -579,6 +580,27 @@ std::shared_ptr<Channel> TwitchIrcServer::getCustomChannel(
     if (channelName == "/automod")
     {
         return this->automodChannel;
+    }
+
+    // Shadow rooms are one per Twitch channel rather than one each, so they
+    // are made on demand and kept by name.
+    if (channelName.startsWith(ShadowChannel::prefix))
+    {
+        auto login = channelName.mid(ShadowChannel::prefix.size());
+        if (login.isEmpty())
+        {
+            return nullptr;
+        }
+
+        auto &weak = this->shadowChannels_[login];
+        if (auto existing = weak.lock())
+        {
+            return existing;
+        }
+
+        auto channel = std::make_shared<ShadowChannel>(login);
+        weak = channel;
+        return channel;
     }
 
     static auto getTimer = [this](ChannelPtr channel, int msBetweenMessages,

@@ -13,6 +13,7 @@
 #include "util/PostToThread.hpp"
 
 #include <QPointer>
+#include <QUuid>
 
 #include <algorithm>
 #include <utility>
@@ -181,6 +182,21 @@ void CompanionSocket::sendTyping(const QString &channelId, bool active)
     this->send(companionFrames::typing(channelId, active));
 }
 
+std::optional<QString> CompanionSocket::say(const QString &channelId,
+                                            const QString &body)
+{
+    if (!this->connected_ || !this->desiredRooms_.contains(channelId) ||
+        body.isEmpty())
+    {
+        return std::nullopt;
+    }
+
+    auto nonce = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    this->send(companionFrames::say(channelId, body, nonce));
+
+    return nonce;
+}
+
 void CompanionSocket::open()
 {
     if (!this->wantConnection_ || this->connected_)
@@ -320,11 +336,17 @@ void CompanionSocket::handle(const CompanionFrame &frame)
         return;
     }
 
+    if (const auto *ack = std::get_if<CompanionAck>(&frame))
+    {
+        Q_EMIT this->messageAccepted(ack->nonce, ack->id);
+        return;
+    }
+
     if (const auto *error = std::get_if<CompanionError>(&frame))
     {
         qCWarning(chatterinoApp)
             << "Companion socket reported" << error->code << error->message;
-        Q_EMIT this->errorReceived(error->code, error->message);
+        Q_EMIT this->errorReceived(error->code, error->message, error->nonce);
         return;
     }
 }

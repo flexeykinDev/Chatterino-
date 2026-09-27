@@ -152,6 +152,10 @@ private:
     const ChannelPtr automodChannel;
     IndirectChannel watchingChannel;
 
+    /// Shadow rooms, one per Twitch channel rather than one in total, held
+    /// weakly so a room goes away with the last split showing it.
+    QHash<QString, std::weak_ptr<Channel>> shadowChannels_;
+
 public:
     const IndirectChannel &getWatchingChannel() const override;
     void setWatchingChannel(ChannelPtr newWatchingChannel) override;
