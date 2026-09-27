@@ -1022,6 +1022,10 @@ void TwitchChannel::setRoomId(const QString &id)
     if (*this->roomID_.accessConst() != id)
     {
         *this->roomID_.access() = id;
+        // Announced even in tests: it carries no work of its own, and a
+        // listener that never hears about the id is a feature that silently
+        // does nothing.
+        this->roomIdSet.invoke();
         // This is intended for tests and benchmarks. See comment in constructor.
         if (!getApp()->isTest())
         {

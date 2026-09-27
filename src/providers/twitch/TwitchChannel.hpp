@@ -352,6 +352,11 @@ public:
     pajlada::Signals::NoArgSignal streamStatusChanged;
 
     pajlada::Signals::NoArgSignal roomModesChanged;
+    /// Fires when the channel learns its own numeric id, which arrives with
+    /// ROOMSTATE some time after the channel object exists. Anything keyed by
+    /// room id has to wait for this rather than read the id at construction,
+    /// where it is still empty.
+    pajlada::Signals::NoArgSignal roomIdSet;
 
     pajlada::Signals::NoArgSignal destroyed;
 

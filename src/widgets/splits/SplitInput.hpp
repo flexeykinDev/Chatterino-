@@ -194,6 +194,9 @@ protected:
     /// The channel whose room this split has joined, so it can be left again
     /// when the split moves or closes.
     QString companionRoom_;
+    /// Holds the subscription to the current channel's roomIdSet, dropped when
+    /// the split moves to another channel.
+    pajlada::Signals::SignalHolder companionHolder_;
 
     MessagePtr replyTarget_ = nullptr;
     bool enableInlineReplying_;

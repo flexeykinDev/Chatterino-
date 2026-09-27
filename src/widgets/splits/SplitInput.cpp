@@ -1107,6 +1107,17 @@ void SplitInput::retargetCompanionRoom()
             dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
     {
         room = twitch->roomId();
+
+        // The id arrives with ROOMSTATE, well after the split exists, so at
+        // this point it is usually still empty. Without waiting for it the
+        // room is never joined and every socket feature silently does nothing.
+        if (room.isEmpty())
+        {
+            this->companionHolder_ = {};
+            this->companionHolder_.managedConnect(twitch->roomIdSet, [this] {
+                this->retargetCompanionRoom();
+            });
+        }
     }
 
     if (room == this->companionRoom_)
