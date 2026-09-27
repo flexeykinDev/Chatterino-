@@ -26,6 +26,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/TabAvatarLayout.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/RatelimitBucket.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Hotkeys.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/PresenceRegistry.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/TypingNotifier.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/TypingTracker.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/UtilTwitch.cpp

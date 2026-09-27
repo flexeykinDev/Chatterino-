@@ -419,6 +419,8 @@ set(SOURCE_FILES
         providers/companion/GlobalBanMarker.hpp
         providers/companion/GlobalBanRegistry.cpp
         providers/companion/GlobalBanRegistry.hpp
+        providers/companion/PresenceRegistry.cpp
+        providers/companion/PresenceRegistry.hpp
         providers/companion/TypingNotifier.cpp
         providers/companion/TypingNotifier.hpp
         providers/companion/TypingTracker.cpp
