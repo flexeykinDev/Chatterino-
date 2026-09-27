@@ -415,6 +415,8 @@ set(SOURCE_FILES
         providers/companion/GlobalBanMarker.hpp
         providers/companion/GlobalBanRegistry.cpp
         providers/companion/GlobalBanRegistry.hpp
+        providers/companion/TypingNotifier.cpp
+        providers/companion/TypingNotifier.hpp
 
         providers/emoji/Emojis.cpp
         providers/emoji/Emojis.hpp
