@@ -61,6 +61,9 @@ private:
     QDateTime hideAt_;
 
     pajlada::Signals::SignalHolder signalHolder_;
+    /// Waits for the channel to learn its own id, dropped when the split
+    /// moves to another channel.
+    pajlada::Signals::SignalHolder channelHolder_;
 };
 
 }  // namespace chatterino

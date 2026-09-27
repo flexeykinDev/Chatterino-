@@ -74,6 +74,19 @@ void PollBannerWidget::setChannel(TwitchChannel *channel)
     if (channel != nullptr)
     {
         roomId = channel->roomId();
+
+        // A channel does not know its own id when the split is first given
+        // it; that arrives with ROOMSTATE a moment later. Reading it once and
+        // keeping the empty string means no frame ever matches and the banner
+        // never appears, which is exactly how this shipped the first time.
+        if (roomId.isEmpty())
+        {
+            this->channelHolder_ = {};
+            this->channelHolder_.managedConnect(channel->roomIdSet,
+                                                [this, channel] {
+                                                    this->setChannel(channel);
+                                                });
+        }
     }
 
     if (roomId == this->roomId_)
