@@ -378,15 +378,25 @@ void SplitHeader::initializeLayout()
             w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
             w->hide();
             QObject::connect(w, &Button::leftClicked, this, [this] {
+                // Clicking again closes it, rather than stacking a second one
+                // on top of the first.
+                if (!this->chatModesPopup_.isNull())
+                {
+                    this->chatModesPopup_->close();
+                    return;
+                }
+
                 auto *twitch = dynamic_cast<TwitchChannel *>(
                     this->split_->getChannel().get());
 
                 auto *popup = ChatModesPopup::forChannel(
                     this->split_->getChannel(), twitch, this);
                 popup->setAttribute(Qt::WA_DeleteOnClose);
-                popup->move(this->mapToGlobal(
-                    QPoint(0, this->height())));
+                popup->move(this->mapToGlobal(QPoint(0, this->height())));
                 popup->show();
+                popup->activateWindow();
+
+                this->chatModesPopup_ = popup;
             });
         }),
         // pin indicator

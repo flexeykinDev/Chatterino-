@@ -19,6 +19,8 @@
 
 namespace chatterino {
 
+class ChatModesPopup;
+
 class SvgButton;
 class DrawnButton;
 class LabelButton;
@@ -66,6 +68,9 @@ private:
     void handleChannelChanged();
 
     Split *const split_{};
+    /// The open chat modes panel, so a second click closes it rather than
+    /// opening another.
+    QPointer<ChatModesPopup> chatModesPopup_;
     QString tooltipText_{};
     TooltipWidget *const tooltipWidget_{};
     bool isLive_{false};

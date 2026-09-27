@@ -43,6 +43,11 @@ public:
     /// Applies a mode, for a test that checks which command a row sends.
     void applyForTest(ChatMode mode, int amount);
 
+protected:
+    /// Closes when focus goes elsewhere, the way a menu does. Without it every
+    /// click on the header leaves another panel on screen.
+    void windowDeactivationEvent() override;
+
 private:
     void addRow(const ChatModeRow &row);
     void apply(ChatMode mode, int amount);

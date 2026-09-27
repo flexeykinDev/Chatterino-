@@ -29,8 +29,11 @@ namespace chatterino {
 
 ChatModesPopup::ChatModesPopup(std::vector<ChatModeRow> rows, CommandSink send,
                               QWidget *parent)
-    : BasePopup({BaseWindow::Frameless, BaseWindow::FramelessDraggable,
-                 BaseWindow::DisableLayoutSave},
+    // Not FramelessDraggable. On Windows that makes every area without mouse
+    // tracking behave as the title bar, so clicks on the rows drag the panel
+    // instead of pressing anything — and a menu has no business being
+    // draggable in the first place.
+    : BasePopup({BaseWindow::Frameless, BaseWindow::DisableLayoutSave},
                 parent)
     , send_(std::move(send))
 {
@@ -125,6 +128,11 @@ void ChatModesPopup::addRow(const ChatModeRow &row)
     });
 
     this->rows_->addWidget(button);
+}
+
+void ChatModesPopup::windowDeactivationEvent()
+{
+    this->close();
 }
 
 void ChatModesPopup::applyForTest(ChatMode mode, int amount)
