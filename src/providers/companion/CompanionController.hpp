@@ -7,6 +7,8 @@
 #include "providers/companion/CompanionApi.hpp"
 #include "providers/companion/CompanionHealth.hpp"
 #include "providers/companion/GlobalBanRegistry.hpp"
+#include "providers/companion/TypingNotifier.hpp"
+#include "providers/companion/TypingTracker.hpp"
 #include "singletons/Settings.hpp"
 
 #include <pajlada/signals/signalholder.hpp>
@@ -93,7 +95,30 @@ public:
     /// a connection pool it will not use.
     [[nodiscard]] CompanionSocket *socket();
 
+    /// Registers interest in a channel's room. Counted, because several splits
+    /// can show the same channel and the last one to close is the only one
+    /// that should leave.
+    void watchChannel(const QString &channelId);
+    void unwatchChannel(const QString &channelId);
+
+    /// How many places are currently watching a channel. Exposed so the
+    /// counting can be checked without opening windows.
+    [[nodiscard]] int watcherCount(const QString &channelId) const;
+
+    /// The line to show beside a channel's message box, or empty.
+    [[nodiscard]] QString typistsText(const QString &channelId) const;
+
+    /// Reports what is in the message box, so the room can be told somebody is
+    /// typing. Most calls send nothing; see TypingNotifier.
+    void reportInput(const QString &channelId, bool hasText);
+    /// The message went. Takes back the indicator explicitly, since the server
+    /// cannot see a message sent through Twitch rather than through it.
+    void reportMessageSent(const QString &channelId);
+
 Q_SIGNALS:
+    /// The set of people typing in a channel changed.
+    void typistsChanged(const QString &channelId);
+
     /// The reason the companion features are, or are not, doing anything has
     /// changed.
     void statusChanged(CompanionStatus status);
@@ -108,10 +133,21 @@ private:
     /// told apart from "nobody here has been banned anywhere".
     void noteResult(bool ok);
 
+    /// Forgets every typist, for a dropped connection.
+    void clearTypists();
+
     CompanionApi api_;
     CompanionHealth health_;
     GlobalBanRegistry registry_;
     std::unique_ptr<CompanionSocket> socket_;
+
+    /// channel -> how many places are showing it.
+    QHash<QString, int> watchers_;
+    TypingTracker typists_;
+    /// One per channel, since somebody can be mid-sentence in two splits.
+    QHash<QString, TypingNotifier> typingNotifiers_;
+    /// Sweeps entries nobody sent a stop for.
+    QTimer typistExpiryTimer_;
 
     /// Long enough that a burst of messages becomes one request, short enough
     /// that a marker appears while the message is still on screen.

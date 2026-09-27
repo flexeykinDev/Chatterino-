@@ -11,6 +11,8 @@
 #include "providers/companion/GlobalBan.hpp"
 #include "singletons/WindowManager.hpp"
 
+#include <QDateTime>
+
 namespace {
 
 /// The signed-in Twitch account, or nothing.
@@ -37,12 +39,30 @@ constexpr int flushDelayMs = 400;
 /// proportional to its own speed rather than to how busy the chat is.
 constexpr int maxInFlight = 2;
 
+/// How often to sweep typists whose entry nobody sent a stop for. Frequent
+/// enough that a stale line does not linger noticeably, rare enough to be free.
+constexpr int typistSweepMs = 2000;
+
 }  // namespace
 
 namespace chatterino {
 
 CompanionController::CompanionController()
 {
+    this->typistExpiryTimer_.setInterval(typistSweepMs);
+    QObject::connect(&this->typistExpiryTimer_, &QTimer::timeout, this, [this] {
+        for (const auto &channelId :
+             this->typists_.dropExpired(QDateTime::currentMSecsSinceEpoch()))
+        {
+            Q_EMIT this->typistsChanged(channelId);
+        }
+
+        if (this->typists_.isEmpty())
+        {
+            this->typistExpiryTimer_.stop();
+        }
+    });
+
     this->flushTimer_.setSingleShot(true);
     this->flushTimer_.setInterval(flushDelayMs);
     QObject::connect(&this->flushTimer_, &QTimer::timeout, this, [this] {
@@ -105,9 +125,147 @@ CompanionSocket *CompanionController::socket()
     if (!this->socket_)
     {
         this->socket_ = std::make_unique<CompanionSocket>();
+
+        QObject::connect(this->socket_.get(),
+                         &CompanionSocket::typingChanged, this,
+                         [this](const QString &channelId, const QString &login,
+                                bool active) {
+                             auto now =
+                                 QDateTime::currentMSecsSinceEpoch();
+                             if (this->typists_.set(channelId, login, active,
+                                                    now))
+                             {
+                                 Q_EMIT this->typistsChanged(channelId);
+                             }
+
+                             if (!this->typists_.isEmpty())
+                             {
+                                 this->typistExpiryTimer_.start();
+                             }
+                         });
+
+        QObject::connect(this->socket_.get(), &CompanionSocket::disconnected,
+                         this, [this] {
+                             // Nothing learned before the drop is still true,
+                             // and leaving a line up would claim somebody is
+                             // typing into a socket that is gone.
+                             this->clearTypists();
+                         });
+
+        QObject::connect(this->socket_.get(), &CompanionSocket::connected, this,
+                         [this] {
+                             for (auto it = this->watchers_.constBegin();
+                                  it != this->watchers_.constEnd(); ++it)
+                             {
+                                 this->socket_->join(it.key());
+                             }
+                         });
     }
 
     return this->socket_.get();
+}
+
+void CompanionController::clearTypists()
+{
+    QStringList had;
+    for (auto it = this->watchers_.constBegin();
+         it != this->watchers_.constEnd(); ++it)
+    {
+        if (!this->typists_.typists(it.key(),
+                                    QDateTime::currentMSecsSinceEpoch())
+                 .isEmpty())
+        {
+            had.append(it.key());
+        }
+    }
+
+    this->typists_.clear();
+    this->typingNotifiers_.clear();
+    this->typistExpiryTimer_.stop();
+
+    for (const auto &channelId : had)
+    {
+        Q_EMIT this->typistsChanged(channelId);
+    }
+}
+
+void CompanionController::watchChannel(const QString &channelId)
+{
+    if (channelId.isEmpty())
+    {
+        return;
+    }
+
+    if (++this->watchers_[channelId] == 1 && this->isEnabled())
+    {
+        this->socket()->join(channelId);
+    }
+}
+
+void CompanionController::unwatchChannel(const QString &channelId)
+{
+    auto watcher = this->watchers_.find(channelId);
+    if (watcher == this->watchers_.end())
+    {
+        return;
+    }
+
+    if (--watcher.value() > 0)
+    {
+        return;
+    }
+
+    this->watchers_.erase(watcher);
+    this->typists_.forget(channelId);
+    this->typingNotifiers_.remove(channelId);
+
+    if (this->socket_)
+    {
+        this->socket_->part(channelId);
+    }
+}
+
+int CompanionController::watcherCount(const QString &channelId) const
+{
+    return this->watchers_.value(channelId, 0);
+}
+
+QString CompanionController::typistsText(const QString &channelId) const
+{
+    return TypingTracker::describe(this->typists_.typists(
+        channelId, QDateTime::currentMSecsSinceEpoch()));
+}
+
+void CompanionController::reportInput(const QString &channelId, bool hasText)
+{
+    if (!this->isEnabled() || channelId.isEmpty())
+    {
+        return;
+    }
+
+    auto decision = this->typingNotifiers_[channelId].inputChanged(
+        hasText, QDateTime::currentMSecsSinceEpoch());
+
+    if (decision.has_value())
+    {
+        this->socket()->sendTyping(channelId, *decision);
+    }
+}
+
+void CompanionController::reportMessageSent(const QString &channelId)
+{
+    if (!this->isEnabled() || channelId.isEmpty())
+    {
+        return;
+    }
+
+    auto decision = this->typingNotifiers_[channelId].messageSent(
+        QDateTime::currentMSecsSinceEpoch());
+
+    if (decision.has_value())
+    {
+        this->socket()->sendTyping(channelId, *decision);
+    }
 }
 
 CompanionStatus CompanionController::status() const

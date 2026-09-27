@@ -43,6 +43,9 @@ public:
     SplitInput(Split *_chatWidget, bool enableInlineReplying = true);
     SplitInput(QWidget *parent, Split *_chatWidget, ChannelView *_channelView,
                bool enableInlineReplying = true);
+    /// Leaves the companion room this split joined, so closing a split stops
+    /// it being counted as watching the channel.
+    ~SplitInput() override;
 
     bool hasSelection() const;
     void clearSelection() const;
@@ -178,7 +181,19 @@ protected:
         QWidget *historySearchWrap;
         QLineEdit *historySearchInput;
         QLabel *historySearchLabel;
+        /// "someone is typing…", from the companion service. Hidden when
+        /// nobody is, so it takes no room in the common case.
+        QLabel *typingStatus;
     } ui_;
+
+    /// Refreshes the typing line, and joins or leaves the room behind it when
+    /// the split changes channel.
+    void updateTypingStatus();
+    void retargetCompanionRoom();
+
+    /// The channel whose room this split has joined, so it can be left again
+    /// when the split moves or closes.
+    QString companionRoom_;
 
     MessagePtr replyTarget_ = nullptr;
     bool enableInlineReplying_;

@@ -161,4 +161,12 @@ if (CHATTERINO_STATIC_QT_BUILD)
     )
 endif ()
 
-gtest_discover_tests(${PROJECT_NAME})
+# PRE_TEST defers discovery to when ctest runs, instead of running the freshly
+# linked binary during the build.
+#
+# On Windows the default fails intermittently and for a reason nothing points
+# at: the antivirus scans the new executable, the discovery step tries to run
+# it in that window, and the build stops with "Error running test executable"
+# on a binary that runs perfectly a second later. Needing to execute what was
+# just linked in order to finish linking is a dependency worth not having.
+gtest_discover_tests(${PROJECT_NAME} DISCOVERY_MODE PRE_TEST)

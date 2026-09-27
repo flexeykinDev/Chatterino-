@@ -12,6 +12,7 @@
 #include "controllers/spellcheck/SpellChecker.hpp"
 #include "messages/Link.hpp"
 #include "messages/Message.hpp"
+#include "providers/companion/CompanionController.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "providers/twitch/TwitchCommon.hpp"
 #include "providers/twitch/TwitchIrcServer.hpp"
@@ -137,7 +138,23 @@ SplitInput::SplitInput(QWidget *parent, Split *_chatWidget,
         auto *completer = new QCompleter(channel->completionModel);
         this->ui_.textEdit->setCompleter(completer);
         this->inputHighlighter->setChannel(this->split_->getChannel());
+        this->retargetCompanionRoom();
     });
+
+    if (auto *companion = getApp()->getCompanion(); companion != nullptr)
+    {
+        QObject::connect(companion, &CompanionController::typistsChanged, this,
+                         [this](const QString &channelId) {
+                             if (channelId == this->companionRoom_)
+                             {
+                                 this->updateTypingStatus();
+                             }
+                         });
+    }
+
+    // The channel is already set by the time this runs, and channelChanged
+    // only fires on later changes, so the first room has to be joined here.
+    this->retargetCompanionRoom();
 
     getSettings()->enableSpellChecking.connect(
         [this] {
@@ -383,6 +400,14 @@ void SplitInput::initLayout()
             },
             nullptr, QSize{6, 3});
         box->addWidget(this->ui_.emoteButton, 0, Qt::AlignRight);
+    }
+
+    // Sits under the box, and takes no room at all when nobody is typing —
+    // which is nearly always.
+    {
+        auto typing = layout.emplace<QLabel>().assign(&this->ui_.typingStatus);
+        typing->setVisible(false);
+        typing->setTextFormat(Qt::PlainText);
     }
 
     // ---- misc
@@ -635,6 +660,15 @@ void SplitInput::postMessageSend(const QString &message,
         this->clearInput();
     }
     this->prevIndex_ = this->prevMsg_.size();
+
+    // The message went out through Twitch, which the companion service cannot
+    // see, so the indicator has to be taken back explicitly. Clearing the box
+    // would say the same thing, but only when the box is actually cleared —
+    // "keepInput" leaves it full.
+    if (auto *companion = getApp()->getCompanion(); companion != nullptr)
+    {
+        companion->reportMessageSent(this->companionRoom_);
+    }
 }
 
 int SplitInput::scaledMaxHeight() const
@@ -1052,6 +1086,76 @@ void SplitInput::mousePressEvent(QMouseEvent *event)
 void SplitInput::onTextChanged()
 {
     this->updateCompletionPopup();
+
+    if (auto *companion = getApp()->getCompanion(); companion != nullptr)
+    {
+        companion->reportInput(this->companionRoom_,
+                               !this->ui_.textEdit->toPlainText().isEmpty());
+    }
+}
+
+void SplitInput::retargetCompanionRoom()
+{
+    auto *companion = getApp()->getCompanion();
+    if (companion == nullptr)
+    {
+        return;
+    }
+
+    QString room;
+    if (auto *twitch =
+            dynamic_cast<TwitchChannel *>(this->split_->getChannel().get()))
+    {
+        room = twitch->roomId();
+    }
+
+    if (room == this->companionRoom_)
+    {
+        return;
+    }
+
+    if (!this->companionRoom_.isEmpty())
+    {
+        companion->unwatchChannel(this->companionRoom_);
+    }
+
+    this->companionRoom_ = room;
+
+    if (!room.isEmpty())
+    {
+        companion->watchChannel(room);
+    }
+
+    this->updateTypingStatus();
+}
+
+void SplitInput::updateTypingStatus()
+{
+    if (this->ui_.typingStatus == nullptr)
+    {
+        return;
+    }
+
+    auto *companion = getApp()->getCompanion();
+    auto text = companion == nullptr
+                    ? QString{}
+                    : companion->typistsText(this->companionRoom_);
+
+    this->ui_.typingStatus->setText(text);
+    this->ui_.typingStatus->setVisible(!text.isEmpty());
+}
+
+SplitInput::~SplitInput()
+{
+    if (this->companionRoom_.isEmpty())
+    {
+        return;
+    }
+
+    if (auto *companion = getApp()->getCompanion(); companion != nullptr)
+    {
+        companion->unwatchChannel(this->companionRoom_);
+    }
 }
 
 void SplitInput::onCursorPositionChanged()
