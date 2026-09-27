@@ -4,6 +4,8 @@
 
 #include "providers/twitch/PubSubClient.hpp"
 
+#include "providers/twitch/PollState.hpp"
+
 #include "common/QLogging.hpp"
 #include "providers/twitch/PubSubManager.hpp"
 #include "providers/twitch/PubSubMessages.hpp"
@@ -162,6 +164,25 @@ void PubSubClient::handleResponse(const PubSubMessage &message)
 
 void PubSubClient::handleMessageResponse(const PubSubMessageMessage &message)
 {
+    if (message.topic.startsWith("polls."))
+    {
+        // strip the "polls." prefix
+        const auto channelId =
+            message.topic.sliced(static_cast<qsizetype>(sizeof("polls.") - 1));
+
+        auto poll = parsePollFrame(message.messageObject);
+        if (!poll)
+        {
+            // Twitch sends several frame types here, and a later one this
+            // build does not know is not an error worth logging on every
+            // vote.
+            return;
+        }
+
+        this->manager_.polls.updated.invoke(channelId, *poll);
+        return;
+    }
+
     if (message.topic.startsWith("pinned-chat-updates-v1."))
     {
         auto oInnerMessage =

@@ -5,6 +5,7 @@
 #pragma once
 
 #include "providers/liveupdates/Diag.hpp"
+#include "providers/twitch/PollState.hpp"
 
 #include <pajlada/signals/signal.hpp>
 #include <QJsonObject>
@@ -58,6 +59,13 @@ public:
         Signal<const QString &> unpinned;
     } pinnedChatUpdates;
 
+    struct {
+        /// A poll on a channel began, changed or ended. The channel id comes
+        /// with it because one socket carries every channel being watched.
+        // The alias takes one argument; this one carries two.
+        pajlada::Signals::Signal<const QString &, const Poll &> updated;
+    } polls;
+
     /**
      * Listen to incoming channel point redemptions in the given channel.
      * This topic is relevant for everyone.
@@ -73,6 +81,11 @@ public:
      * PubSub topic: pinned-chat-updates-v1.{channelID}
      */
     void listenToPinnedChatUpdates(const QString &channelID);
+
+    /// Polls are readable without authenticating, so this works on any
+    /// channel rather than only ones the user broadcasts.
+    void listenToPolls(const QString &channelID);
+    void unlistenPolls(const QString &channelID);
 
     struct {
         std::atomic<uint32_t> messagesReceived{0};
