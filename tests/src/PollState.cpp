@@ -5,6 +5,8 @@
 #include "providers/twitch/PollState.hpp"
 
 #include <gtest/gtest.h>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 #include <numeric>
 
@@ -183,4 +185,134 @@ TEST(PollPercentages, ignoresNonsenseVoteCounts)
 
     EXPECT_EQ(shares[0], 100);
     EXPECT_EQ(shares[1], 0);
+}
+
+// --- parsing the real payload ------------------------------------------
+
+namespace {
+
+/// The frame Twitch actually sent for a live poll on a real channel, kept
+/// verbatim. Guessing at this shape is how a parser ends up silently
+/// returning nothing.
+constexpr const char *REAL_POLL_FRAME = R"({
+  "type": "POLL_UPDATE",
+  "data": {"poll": {
+    "poll_id": "6e9696d0-197a-4247-80e5-09ddbe66a243",
+    "owned_by": "559931613", "created_by": "559931613",
+    "title": "test",
+    "started_at": "2026-09-27T17:59:55.899117365Z",
+    "ended_at": null, "ended_by": null,
+    "duration_seconds": 300,
+    "settings": {"multi_choice": {"is_enabled": true},
+                 "bits_votes": {"is_enabled": false, "cost": 0},
+                 "channel_points_votes": {"is_enabled": false, "cost": 0}},
+    "status": "ACTIVE",
+    "choices": [
+      {"choice_id": "a1b0116f-aaa0-4fc4-8e61-f3d7f276ace8", "title": "y",
+       "votes": {"total": 0, "bits": 0, "channel_points": 0, "base": 0, "granted": 0},
+       "tokens": {"bits": 0, "channel_points": 0}, "total_voters": 0},
+      {"choice_id": "61810d1c-9cdc-43e9-8621-0da766710deb", "title": "n",
+       "votes": {"total": 1, "bits": 0, "channel_points": 0, "base": 1, "granted": 0},
+       "tokens": {"bits": 0, "channel_points": 0}, "total_voters": 1}
+    ],
+    "votes": {"total": 1, "bits": 0, "channel_points": 0, "base": 1, "granted": 0},
+    "tokens": {"bits": 0, "channel_points": 0},
+    "total_voters": 1,
+    "remaining_duration_milliseconds": 209681,
+    "top_contributor": null
+  }}
+})";
+
+QJsonObject asJson(const char *text)
+{
+    QJsonParseError error{};
+    auto document = QJsonDocument::fromJson(QByteArray(text), &error);
+    EXPECT_EQ(error.error, QJsonParseError::NoError)
+        << error.errorString().toStdString();
+    return document.object();
+}
+
+}  // namespace
+
+TEST(PollParsing, readsTheFrameTwitchActuallySends)
+{
+    auto poll = parsePollFrame(asJson(REAL_POLL_FRAME));
+
+    ASSERT_TRUE(poll.has_value());
+    EXPECT_EQ(poll->id, "6e9696d0-197a-4247-80e5-09ddbe66a243");
+    EXPECT_EQ(poll->title, "test");
+    EXPECT_TRUE(poll->isRunning());
+    EXPECT_EQ(poll->totalVoters, 1);
+
+    ASSERT_EQ(poll->choices.size(), 2u);
+    EXPECT_EQ(poll->choices[0].title, "y");
+    EXPECT_EQ(poll->choices[0].votes, 0);
+    EXPECT_EQ(poll->choices[1].title, "n");
+    EXPECT_EQ(poll->choices[1].votes, 1);
+    EXPECT_EQ(poll->totalVotes(), 1);
+}
+
+TEST(PollParsing, takesTheVoteFromTheTotalRatherThanTheBaseCount)
+{
+    // Votes arrive split across base, bits and channel points. Only `total`
+    // is the number a viewer sees on the bar.
+    auto poll = parsePollFrame(asJson(REAL_POLL_FRAME));
+
+    ASSERT_TRUE(poll.has_value());
+    EXPECT_EQ(pollPercentages(poll->choices), std::vector<int>({0, 100}));
+}
+
+TEST(PollParsing, usesTwitchsOwnCountdown)
+{
+    auto now = QDateTime::currentDateTime();
+    auto poll = parsePollFrame(asJson(REAL_POLL_FRAME));
+
+    ASSERT_TRUE(poll.has_value());
+    // 209681ms remaining. Derived from the countdown Twitch sends rather than
+    // from started_at plus duration, which disagree whenever the clocks do.
+    EXPECT_NEAR(poll->secondsRemaining(now), 209, 2);
+}
+
+TEST(PollParsing, readsTheTerminalStatuses)
+{
+    for (auto [text, running] : {std::pair{"COMPLETED", false},
+                                 std::pair{"TERMINATED", false},
+                                 std::pair{"ACTIVE", true}})
+    {
+        auto frame = QString(REAL_POLL_FRAME)
+                         .replace("\"status\": \"ACTIVE\"",
+                                  QString("\"status\": \"%1\"").arg(text));
+        auto poll = parsePollFrame(asJson(frame.toUtf8().constData()));
+
+        ASSERT_TRUE(poll.has_value()) << text;
+        EXPECT_EQ(poll->isRunning(), running) << text;
+    }
+}
+
+TEST(PollParsing, treatsAnUnknownStatusAsNotWorthShowing)
+{
+    // Showing a poll in a state this build does not understand is the worse
+    // of the two mistakes.
+    auto frame = QString(REAL_POLL_FRAME)
+                     .replace("\"status\": \"ACTIVE\"",
+                              "\"status\": \"SOMETHING_NEW\"");
+    auto poll = parsePollFrame(asJson(frame.toUtf8().constData()));
+
+    ASSERT_TRUE(poll.has_value());
+    EXPECT_FALSE(poll->isRunning());
+    EXPECT_FALSE(poll->hasShowableResult());
+}
+
+TEST(PollParsing, ignoresFramesWithNoPollInThem)
+{
+    EXPECT_FALSE(parsePollFrame(asJson(R"({"type":"SOMETHING_ELSE"})")));
+    EXPECT_FALSE(parsePollFrame(asJson(R"({"data":{}})")));
+    EXPECT_FALSE(parsePollFrame(asJson("{}")));
+}
+
+TEST(PollParsing, rejectsAPollWithNoChoices)
+{
+    // Nothing to draw, and a bar chart of nothing is worse than no banner.
+    EXPECT_FALSE(parsePollFrame(asJson(
+        R"({"data":{"poll":{"poll_id":"x","title":"t","choices":[]}}})")));
 }

@@ -7,7 +7,10 @@
 #include <QDateTime>
 #include <QString>
 
+#include <optional>
 #include <vector>
+
+class QJsonObject;
 
 namespace chatterino {
 
@@ -42,6 +45,9 @@ struct Poll {
     std::vector<PollChoice> choices;
     QDateTime startedAt;
     QDateTime endsAt;
+    /// How many people voted, which is not the number of votes: a poll may
+    /// allow more than one choice each.
+    int totalVoters = 0;
 
     /// How many votes were cast in total, across every choice.
     [[nodiscard]] int totalVotes() const;
@@ -63,6 +69,13 @@ struct Poll {
     /// picking whichever came first would be inventing one.
     [[nodiscard]] const PollChoice *leader() const;
 };
+
+/// Parses a `polls.<channel id>` frame.
+///
+/// The payload is Twitch's own, captured from a live poll rather than guessed
+/// at. Returns nothing for anything that is not a poll update, including frame
+/// types a later Twitch may add.
+std::optional<Poll> parsePollFrame(const QJsonObject &root);
 
 /// Each choice's share of the vote, as a percentage rounded to whole numbers
 /// that still add up to 100.

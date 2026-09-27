@@ -4,6 +4,10 @@
 
 #include "providers/twitch/PollState.hpp"
 
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValue>
+
 #include <algorithm>
 #include <numeric>
 
@@ -63,6 +67,91 @@ const PollChoice *Poll::leader() const
     }
 
     return tied ? nullptr : best;
+}
+
+namespace {
+
+/// Twitch reports the status as a string; anything unrecognised is treated as
+/// withdrawn rather than shown, since showing a poll in a state this build
+/// does not understand is the worse of the two mistakes.
+Poll::Status parsePollStatus(const QString &status)
+{
+    if (status == "ACTIVE")
+    {
+        return Poll::Status::Active;
+    }
+    if (status == "COMPLETED")
+    {
+        return Poll::Status::Completed;
+    }
+    if (status == "TERMINATED")
+    {
+        return Poll::Status::Terminated;
+    }
+
+    return Poll::Status::Archived;
+}
+
+}  // namespace
+
+std::optional<Poll> parsePollFrame(const QJsonObject &root)
+{
+    // Twitch sends several frame types on this topic. Only the ones carrying a
+    // poll are of interest, and an unfamiliar one is ignored rather than
+    // guessed at.
+    auto data = root.value("data").toObject().value("poll").toObject();
+    if (data.isEmpty())
+    {
+        return std::nullopt;
+    }
+
+    auto id = data.value("poll_id").toString();
+    if (id.isEmpty())
+    {
+        return std::nullopt;
+    }
+
+    Poll poll;
+    poll.id = id;
+    poll.title = data.value("title").toString();
+    poll.status = parsePollStatus(data.value("status").toString());
+    poll.totalVoters = std::max(0, data.value("total_voters").toInt());
+    poll.startedAt =
+        QDateTime::fromString(data.value("started_at").toString(), Qt::ISODateWithMs);
+
+    // Taken from Twitch's own countdown rather than computed from the start
+    // time and the duration: those disagree whenever the clocks do, and it is
+    // the countdown a viewer is watching.
+    auto remaining = data.value("remaining_duration_milliseconds");
+    if (remaining.isDouble())
+    {
+        poll.endsAt = QDateTime::currentDateTime().addMSecs(
+            std::max<qint64>(0, static_cast<qint64>(remaining.toDouble())));
+    }
+
+    for (const auto &entry : data.value("choices").toArray())
+    {
+        auto choice = entry.toObject();
+        auto choiceId = choice.value("choice_id").toString();
+        if (choiceId.isEmpty())
+        {
+            continue;
+        }
+
+        poll.choices.push_back({
+            .id = choiceId,
+            .title = choice.value("title").toString(),
+            .votes = std::max(
+                0, choice.value("votes").toObject().value("total").toInt()),
+        });
+    }
+
+    if (poll.choices.empty())
+    {
+        return std::nullopt;
+    }
+
+    return poll;
 }
 
 std::vector<int> pollPercentages(const std::vector<PollChoice> &choices)
