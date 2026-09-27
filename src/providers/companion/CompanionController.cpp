@@ -97,6 +97,7 @@ void CompanionController::setBaseUrl(const QString &baseUrl)
 
     this->api_.setBaseUrl(baseUrl);
     this->registry_.clear();
+    this->presence_.clear();
     this->flushTimer_.stop();
     this->refreshAvailability();
 
@@ -313,10 +314,22 @@ void CompanionController::noteChatter(const QString &channelId,
         return;
     }
 
-    if (this->registry_.note(channelId, userId))
+    auto now = QDateTime::currentMSecsSinceEpoch();
+
+    auto queued = this->registry_.note(channelId, userId);
+    queued = this->presence_.note(userId, now) || queued;
+
+    if (queued)
     {
         this->scheduleFlush();
     }
+}
+
+std::optional<PresenceState> CompanionController::presenceOf(
+    const QString &userId) const
+{
+    return this->presence_.state(userId,
+                                 QDateTime::currentMSecsSinceEpoch());
 }
 
 void CompanionController::scheduleFlush()
@@ -374,12 +387,41 @@ void CompanionController::flush()
             });
     }
 
+    this->flushPresence();
+
     // Still queued but out of slots: come back when a slot frees up, which the
     // callback above arranges, or after another delay if none does.
     if (this->registry_.pendingCount() > 0)
     {
         this->scheduleFlush();
     }
+}
+
+void CompanionController::flushPresence()
+{
+    auto batch = this->presence_.takeBatch();
+    if (batch.isEmpty())
+    {
+        return;
+    }
+
+    this->api_.fetchPresence(
+        batch, [this, batch](std::optional<QHash<QString, PresenceState>>
+                                 states) {
+            this->noteResult(states.has_value());
+
+            if (!states)
+            {
+                this->presence_.failBatch(batch);
+                return;
+            }
+
+            if (this->presence_.applyStates(
+                    batch, *states, QDateTime::currentMSecsSinceEpoch()))
+            {
+                CompanionController::relayout();
+            }
+        });
 }
 
 void CompanionController::fetchHistory(

@@ -10,6 +10,7 @@
 #include "providers/emoteeffects/EmoteEffectGeometry.hpp"
 
 #include <pajlada/signals/signalholder.hpp>
+#include <QColor>
 #include <QPen>
 #include <QPoint>
 #include <QRect>
@@ -192,6 +193,27 @@ protected:
 private:
     QString count_;
     float scale_ = 1;
+};
+
+/// A small filled circle, drawn rather than loaded so it takes its weight from
+/// the line rather than from a fixed picture.
+class PresenceDotLayoutElement : public MessageLayoutElement
+{
+public:
+    PresenceDotLayoutElement(MessageElement &creator, QSizeF size,
+                             QColor colour);
+
+protected:
+    void addCopyTextToString(QString &str, uint32_t from = 0,
+                             uint32_t to = UINT32_MAX) const override;
+    size_t getSelectionIndexCount() const override;
+    void paint(QPainter &painter, const MessageColors &messageColors) override;
+    bool paintAnimated(QPainter &painter, qreal yOffset) override;
+    int getMouseOverIndex(QPointF abs) const override;
+    qreal getXFromIndex(size_t index) override;
+
+private:
+    QColor colour_;
 };
 
 class ImageWithBackgroundLayoutElement : public ImageLayoutElement

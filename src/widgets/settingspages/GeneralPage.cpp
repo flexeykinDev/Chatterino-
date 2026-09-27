@@ -991,6 +991,13 @@ void GeneralPage::initLayout(GeneralPageView &layout)
         layout.addWidget(status);
     }
 
+    SettingWidget::checkbox("Show who else uses this client", s.showPresenceDot)
+        ->setTooltip(
+            "A dot beside chatters running this client: lit while they have a "
+            "session open, grey once they close it. People who have never used "
+            "it get no dot, which is nearly everyone.")
+        ->addTo(layout);
+
     SettingWidget::checkbox("Mark chatters banned on other channels",
                             s.showGlobalBanMarker)
         ->setTooltip(

@@ -264,6 +264,9 @@ public:
     /// Show a marker beside chatters the companion service has recorded bans
     /// for on other channels. Only has an effect when the address above is set.
     BoolSetting showGlobalBanMarker = {"/companion/showGlobalBanMarker", true};
+    /// Show a dot beside chatters who are running this client, lit when they
+    /// have a session live. Only has an effect when the address above is set.
+    BoolSetting showPresenceDot = {"/companion/showPresenceDot", true};
 
     /// Show a Twitch channel's profile picture on its tab instead of its name.
     /// Tabs become square, and a tab whose channel has no picture, or which is

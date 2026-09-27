@@ -59,7 +59,9 @@ enum class MessageElementFlag : int64_t {
     // - Cross-channel ban marker
     BadgeGlobalBan = (1LL << 9),
 
-    // unused: (1LL << 10),
+    // Slot 11: this fork
+    // - Presence dot
+    BadgePresence = (1LL << 10),
 
     BitsStatic = (1LL << 11),
     BitsAnimated = (1LL << 12),
@@ -126,7 +128,8 @@ enum class MessageElementFlag : int64_t {
 
     Badges = BadgeGlobalAuthority | BadgePredictions | BadgeChannelAuthority |
              BadgeSubscription | BadgeVanity | BadgeChatterino | BadgeSevenTV |
-             BadgeFfz | BadgeSharedChannel | BadgeBttv | BadgeGlobalBan,
+             BadgeFfz | BadgeSharedChannel | BadgeBttv | BadgeGlobalBan |
+             BadgePresence,
 
     ChannelName = (1LL << 20),
 
@@ -647,6 +650,33 @@ public:
 private:
     QString userId_;
     QString channelId_;
+};
+
+/// A dot beside a chatter who is running this client.
+///
+/// Like the ban marker, the answer arrives after the message is built, so the
+/// element is always added and decides at layout time.
+class PresenceDotElement : public MessageElement
+{
+    Q_DECLARE_TR_FUNCTIONS(PresenceDotElement)
+
+public:
+    static constexpr std::string_view TYPE = "presence-dot";
+
+    PresenceDotElement(QString userId, MessageElementFlags flags_);
+
+    void addToContainer(MessageLayoutContainer &container,
+                        const MessageLayoutContext &ctx) override;
+
+    QJsonObject toJson() const override;
+    std::string_view type() const override;
+    std::unique_ptr<MessageElement> clone() const override;
+
+    /// Exposed so the wording can be checked without laying out a message.
+    static QString tooltipFor(bool online);
+
+private:
+    QString userId_;
 };
 
 class BadgeElement : public MessageElement

@@ -49,6 +49,7 @@ TEST(WordFlags, everyBadgeIsRepresentedInTheMask)
              MessageElementFlag::BadgeBttv,
              MessageElementFlag::BadgeSharedChannel,
              MessageElementFlag::BadgeGlobalBan,
+             MessageElementFlag::BadgePresence,
          })
     {
         EXPECT_TRUE(flags.has(badge))
@@ -68,6 +69,19 @@ TEST(WordFlags, theBanMarkerFollowsItsSetting)
     app.settings.showGlobalBanMarker.setValue(false);
     EXPECT_FALSE(wordFlagsFor(&app.settings)
                      .has(MessageElementFlag::BadgeGlobalBan));
+}
+
+TEST(WordFlags, thePresenceDotFollowsItsSetting)
+{
+    MockApplication app;
+
+    app.settings.showPresenceDot.setValue(true);
+    EXPECT_TRUE(
+        wordFlagsFor(&app.settings).has(MessageElementFlag::BadgePresence));
+
+    app.settings.showPresenceDot.setValue(false);
+    EXPECT_FALSE(
+        wordFlagsFor(&app.settings).has(MessageElementFlag::BadgePresence));
 }
 
 TEST(WordFlags, theMaskCoversTheBadgesGroup)

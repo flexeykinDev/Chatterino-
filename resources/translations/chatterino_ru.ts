@@ -37,6 +37,17 @@
     </message>
 </context>
 <context>
+    <name>PresenceDotElement</name>
+    <message>
+        <source>Using this client right now</source>
+        <translation>Сейчас сидит в этом клиенте</translation>
+    </message>
+    <message>
+        <source>Uses this client, but is not running it now</source>
+        <translation>Пользуется этим клиентом, но сейчас не в сети</translation>
+    </message>
+</context>
+<context>
     <name>TypingTracker</name>
     <message>
         <source>%1 is typing…</source>

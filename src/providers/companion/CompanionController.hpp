@@ -7,6 +7,7 @@
 #include "providers/companion/CompanionApi.hpp"
 #include "providers/companion/CompanionHealth.hpp"
 #include "providers/companion/GlobalBanRegistry.hpp"
+#include "providers/companion/PresenceRegistry.hpp"
 #include "providers/companion/TypingNotifier.hpp"
 #include "providers/companion/TypingTracker.hpp"
 #include "singletons/Settings.hpp"
@@ -74,6 +75,11 @@ public:
     /// them. Cheap and safe to call from message building; it does no I/O.
     void noteChatter(const QString &channelId, const QString &userId);
 
+    /// Whether somebody is running this client, or nothing when that has not
+    /// been answered. A plain lookup, safe to call from layout.
+    [[nodiscard]] std::optional<PresenceState> presenceOf(
+        const QString &userId) const;
+
     /// Fetches one chatter's full history. The callback runs on the GUI thread
     /// and receives nothing when the service is unreachable or unconfigured.
     void fetchHistory(const QString &offenderId, const QString &channelId,
@@ -136,9 +142,13 @@ private:
     /// Forgets every typist, for a dropped connection.
     void clearTypists();
 
+    /// Sends the queued presence questions, if any.
+    void flushPresence();
+
     CompanionApi api_;
     CompanionHealth health_;
     GlobalBanRegistry registry_;
+    PresenceRegistry presence_;
     std::unique_ptr<CompanionSocket> socket_;
 
     /// channel -> how many places are showing it.

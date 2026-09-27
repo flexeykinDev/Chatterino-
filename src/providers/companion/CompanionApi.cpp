@@ -94,6 +94,22 @@ std::optional<QUrl> CompanionUrls::history(const QString &offenderId,
     return url;
 }
 
+std::optional<QUrl> CompanionUrls::presence(const QStringList &userIds) const
+{
+    if (!this->isConfigured() || userIds.isEmpty())
+    {
+        return std::nullopt;
+    }
+
+    QUrl url(this->baseUrl_ + "/v1/presence");
+
+    QUrlQuery query;
+    query.addQueryItem("ids", userIds.join(','));
+    url.setQuery(query);
+
+    return url;
+}
+
 std::optional<QUrl> CompanionUrls::vouch(const QString &offenderId) const
 {
     if (!this->isConfigured() || offenderId.isEmpty())
@@ -206,6 +222,32 @@ void CompanionApi::fetchHistory(const QString &offenderId,
         .onError([callback](const NetworkResult &result) {
             qCWarning(chatterinoApp)
                 << "Companion service refused a ban history:"
+                << result.formatError();
+            callback(std::nullopt);
+        })
+        .execute();
+}
+
+void CompanionApi::fetchPresence(const QStringList &userIds,
+                                 PresenceCallback callback) const
+{
+    auto url = this->urls_.presence(userIds);
+    auto token = CompanionApi::token();
+    if (!url || !token)
+    {
+        callback(std::nullopt);
+        return;
+    }
+
+    NetworkRequest(*url)
+        .timeout(requestTimeoutMs)
+        .header("Authorization", "Bearer " + *token)
+        .onSuccess([callback](const NetworkResult &result) {
+            callback(parsePresenceStates(result.parseJson()));
+        })
+        .onError([callback](const NetworkResult &result) {
+            qCWarning(chatterinoApp)
+                << "Companion service refused a presence batch:"
                 << result.formatError();
             callback(std::nullopt);
         })

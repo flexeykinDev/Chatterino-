@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "providers/companion/PresenceRegistry.hpp"
+
 #include <QHash>
 #include <QString>
 #include <QStringList>
@@ -39,6 +41,10 @@ public:
     [[nodiscard]] std::optional<QUrl> history(const QString &offenderId,
                                               const QString &channelId) const;
 
+    /// `GET /v1/presence?ids=` — who is running this client.
+    [[nodiscard]] std::optional<QUrl> presence(
+        const QStringList &userIds) const;
+
     /// `POST`/`DELETE /v1/bans/:offenderId/vouch` — vouch for someone, or take
     /// the vouch back. Both verbs share a URL; the caller picks the verb.
     [[nodiscard]] std::optional<QUrl> vouch(const QString &offenderId) const;
@@ -67,6 +73,8 @@ public:
     using MarkersCallback =
         std::function<void(std::optional<QHash<QString, int>>)>;
     using SummaryCallback = std::function<void(std::optional<GlobalBanSummary>)>;
+    using PresenceCallback =
+        std::function<void(std::optional<QHash<QString, PresenceState>>)>;
     using ChangedCallback = std::function<void(bool ok)>;
 
     CompanionApi() = default;
@@ -78,6 +86,8 @@ public:
                       MarkersCallback callback) const;
     void fetchHistory(const QString &offenderId, const QString &channelId,
                       SummaryCallback callback) const;
+    void fetchPresence(const QStringList &userIds,
+                       PresenceCallback callback) const;
 
     /// Vouches for a chatter on `channelId`: that chat has decided it trusts
     /// them, so no marker is shown there. It changes nothing for any other

@@ -45,6 +45,10 @@ namespace {
 /// on the same baseline as the badges it sits beside.
 constexpr qreal badgeHeight = 18;
 
+/// Smaller than a badge: it sits beside one and should read as punctuation
+/// rather than as another badge competing with it.
+constexpr qreal presenceDotDiameter = 8;
+
 // Computes the bounding box for the given vector of images
 QSizeF getBoundingBoxSize(const std::vector<ImagePtr> &images)
 {
@@ -633,6 +637,80 @@ std::string_view BadgeElement::type() const
 std::unique_ptr<MessageElement> BadgeElement::clone() const
 {
     auto elem = std::make_unique<BadgeElement>(this->emote_, this->getFlags());
+    elem->cloneFrom(*this);
+    return elem;
+}
+
+// PRESENCE DOT
+PresenceDotElement::PresenceDotElement(QString userId,
+                                       MessageElementFlags flags)
+    : MessageElement(flags)
+    , userId_(std::move(userId))
+{
+    this->setTrailingSpace(true);
+}
+
+void PresenceDotElement::addToContainer(MessageLayoutContainer &container,
+                                        const MessageLayoutContext &ctx)
+{
+    if (!this->matchesFlags(ctx.flags))
+    {
+        return;
+    }
+
+    auto *companion = getApp()->getCompanion();
+    if (companion == nullptr)
+    {
+        return;
+    }
+
+    // A plain lookup, never a request: this runs on every relayout.
+    auto state = companion->presenceOf(this->userId_);
+
+    // Unknown means they have never run this client, which is nearly
+    // everybody. Drawing a dot for them would put one beside every name and
+    // say nothing.
+    if (!state.has_value() || *state == PresenceState::Unknown)
+    {
+        return;
+    }
+
+    auto online = *state == PresenceState::Online;
+    auto scale = container.getScale();
+
+    this->setTooltip(PresenceDotElement::tooltipFor(online));
+
+    auto diameter = presenceDotDiameter * scale;
+    container.addElement(new PresenceDotLayoutElement(
+        *this, QSizeF(diameter, diameter),
+        online ? QColor("#3ba55d") : QColor("#72767d")));
+}
+
+QString PresenceDotElement::tooltipFor(bool online)
+{
+    return online ? PresenceDotElement::tr("Using this client right now")
+                  : PresenceDotElement::tr("Uses this client, but is not "
+                                           "running it now");
+}
+
+QJsonObject PresenceDotElement::toJson() const
+{
+    auto base = MessageElement::toJson();
+    base["type"_L1] = u"PresenceDotElement"_s;
+    base["userId"_L1] = this->userId_;
+
+    return base;
+}
+
+std::string_view PresenceDotElement::type() const
+{
+    return std::remove_pointer_t<decltype(this)>::TYPE;
+}
+
+std::unique_ptr<MessageElement> PresenceDotElement::clone() const
+{
+    auto elem = std::make_unique<PresenceDotElement>(this->userId_,
+                                                     this->getFlags());
     elem->cloneFrom(*this);
     return elem;
 }

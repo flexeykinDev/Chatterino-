@@ -3156,6 +3156,8 @@ void MessageBuilder::appendGlobalBanMarker(TwitchChannel *twitchChannel,
 
     this->emplace<GlobalBanMarkerElement>(userID, channelId,
                                           MessageElementFlag::BadgeGlobalBan);
+    this->emplace<PresenceDotElement>(userID,
+                                      MessageElementFlag::BadgePresence);
 }
 
 Outcome MessageBuilder::tryAppendCheermote(TextState &state,

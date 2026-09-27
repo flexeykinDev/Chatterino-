@@ -153,6 +153,7 @@ WindowManager::WindowManager(const Args &appArgs_, const Paths &paths,
     this->updateWordTypeMaskListener.add(settings.showBadgesBttv);
     this->updateWordTypeMaskListener.add(settings.showBadgesSevenTV);
     this->updateWordTypeMaskListener.add(settings.showGlobalBanMarker);
+    this->updateWordTypeMaskListener.add(settings.showPresenceDot);
     this->updateWordTypeMaskListener.add(settings.enableEmoteImages);
     this->updateWordTypeMaskListener.add(settings.lowercaseDomains);
     this->updateWordTypeMaskListener.add(settings.showReplyButton);
@@ -272,6 +273,7 @@ MessageElementFlags wordFlagsFor(Settings *settings)
     flags.set(settings->showBadgesBttv ? MEF::BadgeBttv : MEF::None);
     flags.set(settings->showBadgesSevenTV ? MEF::BadgeSevenTV : MEF::None);
     flags.set(settings->showGlobalBanMarker ? MEF::BadgeGlobalBan : MEF::None);
+    flags.set(settings->showPresenceDot ? MEF::BadgePresence : MEF::None);
 
     // username
     flags.set(MEF::Username);

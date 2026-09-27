@@ -368,6 +368,62 @@ qreal LayeredImageLayoutElement::getXFromIndex(size_t index)
 // IMAGE WITH BACKGROUND
 //
 //
+// PRESENCE DOT
+//
+
+PresenceDotLayoutElement::PresenceDotLayoutElement(MessageElement &creator,
+                                                   QSizeF size, QColor colour)
+    : MessageLayoutElement(creator, size)
+    , colour_(std::move(colour))
+{
+}
+
+void PresenceDotLayoutElement::addCopyTextToString(QString & /*str*/,
+                                                   uint32_t /*from*/,
+                                                   uint32_t /*to*/) const
+{
+    // This client's annotation, not part of what anyone said.
+}
+
+size_t PresenceDotLayoutElement::getSelectionIndexCount() const
+{
+    return 1;
+}
+
+void PresenceDotLayoutElement::paint(QPainter &painter,
+                                     const MessageColors & /*colors*/)
+{
+    auto bounds = this->getRect();
+    if (bounds.isEmpty())
+    {
+        return;
+    }
+
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(this->colour_);
+    painter.drawEllipse(bounds);
+    painter.restore();
+}
+
+bool PresenceDotLayoutElement::paintAnimated(QPainter & /*painter*/,
+                                             qreal /*yOffset*/)
+{
+    return false;
+}
+
+int PresenceDotLayoutElement::getMouseOverIndex(QPointF /*abs*/) const
+{
+    return 0;
+}
+
+qreal PresenceDotLayoutElement::getXFromIndex(size_t index)
+{
+    return index <= 0 ? this->getRect().left() : this->getRect().right();
+}
+
+//
 // GLOBAL BAN MARKER
 //
 
