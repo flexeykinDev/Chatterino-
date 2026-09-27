@@ -20,6 +20,11 @@ LabelButton::LabelButton(const QString &text, BaseWidget *parent, QSize padding)
     this->updatePadding();
 }
 
+QString LabelButton::text() const
+{
+    return this->label_.text();
+}
+
 void LabelButton::setText(const QString &text)
 {
     this->label_.setText(text);
