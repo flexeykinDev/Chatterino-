@@ -26,6 +26,7 @@
 #include "widgets/buttons/LabelButton.hpp"
 #include "widgets/buttons/PixmapButton.hpp"
 #include "widgets/buttons/TitlebarButton.hpp"
+#include "widgets/buttons/InitMentionsButton.hpp"
 #include "widgets/dialogs/MentionsPopup.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/dialogs/switcher/QuickSwitcherPopup.hpp"
@@ -224,6 +225,16 @@ void Window::addCustomTitlebarButtons()
     {
         return;
     }
+
+    // mentions
+    //
+    // With a custom window frame the tab bar has no buttons at all, so a
+    // mentions button added only there is invisible on Windows — which is most
+    // of the people running this.
+    // The titlebar is a QHBoxLayout, so it makes room for a wider button on
+    // its own and there is nothing to relayout by hand.
+    auto *mentions = this->addTitleBarLabel([] {});
+    initMentionsButton(*mentions, {}, this->signalHolder_);
 
     // settings
     this->addTitleBarButton<TitleBarButton>(
