@@ -89,8 +89,6 @@ std::optional<GlobalBanRecord> GlobalBanRecord::fromJson(
         .reason = root.value("reason").toString(),
         .bannedAt = *bannedAt,
         .liftedAt = parseEpochMillis(root.value("liftedAt")),
-        .clearedAt = parseEpochMillis(root.value("clearedAt")),
-        .clearedBy = root.value("clearedBy").toString(),
         .context = parseContext(root.value("context")),
     };
 }
@@ -98,11 +96,6 @@ std::optional<GlobalBanRecord> GlobalBanRecord::fromJson(
 bool GlobalBanRecord::isLifted() const
 {
     return this->liftedAt.has_value();
-}
-
-bool GlobalBanRecord::isCleared() const
-{
-    return this->clearedAt.has_value();
 }
 
 std::optional<GlobalBanSummary> GlobalBanSummary::fromJson(
@@ -117,6 +110,7 @@ std::optional<GlobalBanSummary> GlobalBanSummary::fromJson(
     GlobalBanSummary summary;
     summary.offenderId = offenderId;
     summary.markerCount = std::max(0, root.value("markerCount").toInt());
+    summary.vouched = root.value("vouched").toBool(false);
 
     for (const auto &entry : root.value("history").toArray())
     {

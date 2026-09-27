@@ -140,8 +140,8 @@ but `/health` need an `Authorization` header carrying the caller's Twitch token.
 | `GET` | `/v1/bans/:offenderId?channel=` | any caller |
 | `GET` | `/v1/bans?ids=&channel=` | any caller |
 | `POST` | `/v1/bans` | moderator of `channelId` |
-| `POST` | `/v1/bans/:offenderId/clear` | moderator of `channelId` |
-| `DELETE` | `/v1/bans/:offenderId/clear` | moderator of `channelId` |
+| `POST` | `/v1/bans/:offenderId/vouch` | moderator of `channelId` |
+| `DELETE` | `/v1/bans/:offenderId/vouch` | moderator of `channelId` |
 | `POST` | `/v1/shadow/:channelId/restrict` | moderator of the channel |
 | `DELETE` | `/v1/shadow/:channelId/restrict/:userId` | moderator of the channel |
 | `GET` | `/v1/presence?ids=` | any caller |
@@ -201,16 +201,30 @@ test/                   one file per module
 A marker next to someone's name means "this person was banned elsewhere" — it is
 a prompt to look, not a verdict. Three rules keep it honest:
 
-- **A moderator can vouch.** `clear()` hides the marker for everyone watching
-  that channel, and records which moderator decided that.
+- **A moderator can vouch.** `vouch()` hides the marker for everyone reading
+  that channel, and records which moderator decided it.
+
+  A vouch belongs to the channel that granted it and to nobody else. One chat
+  deciding it trusts somebody says nothing about whether another should, and a
+  moderator should not be able to hide a record from chats they have no
+  standing in. It is about the person rather than about any single ban: "we
+  trust them here", not "this particular ban does not count".
+
+  This was wrong until it was first used. Vouching was stored on the ban row,
+  which made one channel's decision bind every other channel — the opposite of
+  what this paragraph promised — and because the route was given the channel
+  being *read* while the row keyed on the channel where the ban *happened*,
+  nothing matched and vouching silently did nothing at all.
 - **Lifted bans stop counting.** A background pass re-checks old bans; one that
   no longer holds on Twitch is marked lifted and drops out of the marker, while
   staying visible in the history so the record is intact.
 - **Your own channel is excluded.** A ban on the channel you are watching does
   not contribute, because that chat can already see it.
 
-Re-banning someone overrides both a previous vouch and a previous lift: the ban
-is in force again, and the channel that vouched has evidently changed its mind.
+Re-banning someone clears a previous lift, because the ban is in force again,
+and withdraws that channel's own vouch, because a channel that vouched for
+somebody and then banned them has plainly changed its mind. Other channels'
+vouches are left alone; their opinion is theirs.
 
 ## Status
 

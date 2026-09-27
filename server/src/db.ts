@@ -119,6 +119,42 @@ const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: "vouches belong to the channel that grants them",
+    sql: `
+      -- A channel deciding it trusts somebody despite their record elsewhere.
+      --
+      -- This used to live on the ban row, as cleared_by/cleared_at, which made
+      -- a vouch a property of the ban: one channel forgiving somebody hid that
+      -- ban from every other channel too. That is a power no single moderator
+      -- should have over everyone else's chat, and it contradicted what the
+      -- marker claimed to mean.
+      --
+      -- Keyed by the *viewing* channel, so it reads "this chat trusts this
+      -- person", and it says nothing about anyone else's.
+      CREATE TABLE ban_vouches (
+        offender_id  TEXT NOT NULL,
+        channel_id   TEXT NOT NULL,
+        moderator_id TEXT NOT NULL,
+        created_at   INTEGER NOT NULL,
+        PRIMARY KEY (offender_id, channel_id)
+      );
+      CREATE INDEX ban_vouches_channel_idx ON ban_vouches (channel_id);
+
+      -- Carry over what the old columns meant as best we can. A cleared ban
+      -- recorded that the channel it happened on had second thoughts, so that
+      -- becomes a vouch by that same channel.
+      INSERT OR IGNORE INTO ban_vouches
+        (offender_id, channel_id, moderator_id, created_at)
+      SELECT offender_id, channel_id, COALESCE(cleared_by, ''), cleared_at
+      FROM global_bans
+      WHERE cleared_at IS NOT NULL;
+
+      ALTER TABLE global_bans DROP COLUMN cleared_by;
+      ALTER TABLE global_bans DROP COLUMN cleared_at;
+    `,
+  },
 ];
 
 export function openDatabase(path: string): Db {

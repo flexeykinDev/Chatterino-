@@ -65,8 +65,6 @@ TEST(GlobalBanRecordParsing, readsAFullRecord)
         "reason": "spam",
         "bannedAt": 1700000000000,
         "liftedAt": null,
-        "clearedAt": null,
-        "clearedBy": null,
         "context": [
             {"body": "first", "sentAt": 1699999999000},
             {"body": "second", "sentAt": 1699999999500}
@@ -79,30 +77,25 @@ TEST(GlobalBanRecordParsing, readsAFullRecord)
     EXPECT_EQ(record->reason, "spam");
     EXPECT_EQ(record->bannedAt.toMSecsSinceEpoch(), 1700000000000);
     EXPECT_FALSE(record->isLifted());
-    EXPECT_FALSE(record->isCleared());
     ASSERT_EQ(record->context.size(), 2u);
     EXPECT_EQ(record->context[0].body, "first");
     EXPECT_EQ(record->context[1].body, "second");
 }
 
-TEST(GlobalBanRecordParsing, liftedAndClearedAreDistinct)
+TEST(GlobalBanRecordParsing, readsWhetherABanStillHolds)
 {
     auto lifted = GlobalBanRecord::fromJson(json(R"({
         "channelId": "11", "bannedAt": 1700000000000,
-        "liftedAt": 1700000500000, "clearedAt": null
+        "liftedAt": 1700000500000
     })"));
-    auto cleared = GlobalBanRecord::fromJson(json(R"({
-        "channelId": "11", "bannedAt": 1700000000000,
-        "liftedAt": null, "clearedAt": 1700000500000, "clearedBy": "12"
+    auto standing = GlobalBanRecord::fromJson(json(R"({
+        "channelId": "11", "bannedAt": 1700000000000, "liftedAt": null
     })"));
 
     ASSERT_TRUE(lifted.has_value());
-    ASSERT_TRUE(cleared.has_value());
+    ASSERT_TRUE(standing.has_value());
     EXPECT_TRUE(lifted->isLifted());
-    EXPECT_FALSE(lifted->isCleared());
-    EXPECT_FALSE(cleared->isLifted());
-    EXPECT_TRUE(cleared->isCleared());
-    EXPECT_EQ(cleared->clearedBy, "12");
+    EXPECT_FALSE(standing->isLifted());
 }
 
 TEST(GlobalBanRecordParsing, fallsBackToTheChannelIdWhenNoLoginIsGiven)
@@ -149,6 +142,32 @@ TEST(GlobalBanSummaryParsing, skipsUnusableHistoryEntriesButKeepsTheRest)
 TEST(GlobalBanSummaryParsing, rejectsAResponseWithNoOffender)
 {
     EXPECT_FALSE(GlobalBanSummary::fromJson(json(R"({"markerCount": 1})")));
+}
+
+TEST(GlobalBanSummaryParsing, readsWhetherTheReadingChannelHasVouched)
+{
+    auto vouched = GlobalBanSummary::fromJson(json(R"({
+        "offenderId": "99", "markerCount": 0, "vouched": true,
+        "history": [{"channelId": "11", "bannedAt": 1700000000000}]
+    })"));
+
+    ASSERT_TRUE(vouched.has_value());
+    EXPECT_TRUE(vouched->vouched);
+    // The marker is suppressed here, and the record is still readable: a vouch
+    // hides the tag, it does not erase what happened.
+    EXPECT_EQ(vouched->markerCount, 0);
+    EXPECT_EQ(vouched->history.size(), 1u);
+}
+
+TEST(GlobalBanSummaryParsing, aMissingVouchFlagMeansNotVouched)
+{
+    // An older service that does not send the field must not be read as every
+    // chatter being vouched for.
+    auto summary = GlobalBanSummary::fromJson(
+        json(R"({"offenderId": "99", "markerCount": 2})"));
+
+    ASSERT_TRUE(summary.has_value());
+    EXPECT_FALSE(summary->vouched);
 }
 
 // --- registry ----------------------------------------------------------

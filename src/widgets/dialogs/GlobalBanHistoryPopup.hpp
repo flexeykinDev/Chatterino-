@@ -22,8 +22,12 @@ struct GlobalBanSummary;
 /// The card is deliberately evidence rather than a verdict: every entry names
 /// the channel, the reason recorded with it and the messages that preceded it,
 /// so that a moderator decides for themselves. A ban that has since been lifted
-/// or vouched for is still listed, marked as such, rather than hidden — knowing
-/// that a channel changed its mind is itself worth seeing.
+/// is still listed, marked as such, rather than hidden — knowing that a channel
+/// changed its mind is itself worth seeing.
+///
+/// Vouching applies to the channel being read and to nothing else: it says
+/// "we trust this person here", and leaves both the bans and every other
+/// channel's view of them untouched.
 class GlobalBanHistoryPopup final : public BasePopup
 {
     Q_OBJECT
@@ -44,12 +48,16 @@ private:
     void showMessage(const QString &text);
     void showSummary(const GlobalBanSummary &summary);
     QWidget *buildRecordCard(const GlobalBanRecord &record);
-    void vouch();
+    /// Grants this channel's vouch, or takes it back when it already has one.
+    void toggleVouch();
+    void updateVouchButton();
 
     QString offenderId_;
     QString offenderName_;
     QString channelId_;
     bool canVouch_ = false;
+    /// Whether the channel being read has vouched, as the service last said.
+    bool vouched_ = false;
 
     QLabel *heading_ = nullptr;
     QVBoxLayout *entries_ = nullptr;

@@ -90,7 +90,7 @@ std::optional<QUrl> CompanionUrls::history(const QString &offenderId,
     return url;
 }
 
-std::optional<QUrl> CompanionUrls::clear(const QString &offenderId) const
+std::optional<QUrl> CompanionUrls::vouch(const QString &offenderId) const
 {
     if (!this->isConfigured() || offenderId.isEmpty())
     {
@@ -99,7 +99,7 @@ std::optional<QUrl> CompanionUrls::clear(const QString &offenderId) const
 
     return QUrl(this->baseUrl_ + "/v1/bans/" +
                 QString::fromUtf8(QUrl::toPercentEncoding(offenderId)) +
-                "/clear");
+                "/vouch");
 }
 
 void CompanionApi::setBaseUrl(const QString &baseUrl)
@@ -186,7 +186,7 @@ void CompanionApi::fetchHistory(const QString &offenderId,
 void CompanionApi::vouch(const QString &offenderId, const QString &channelId,
                          ChangedCallback callback) const
 {
-    auto url = this->urls_.clear(offenderId);
+    auto url = this->urls_.vouch(offenderId);
     auto token = CompanionApi::token();
     if (!url || !token)
     {
@@ -217,7 +217,7 @@ void CompanionApi::withdrawVouch(const QString &offenderId,
                                  const QString &channelId,
                                  ChangedCallback callback) const
 {
-    auto url = this->urls_.clear(offenderId);
+    auto url = this->urls_.vouch(offenderId);
     auto token = CompanionApi::token();
     if (!url || !token)
     {

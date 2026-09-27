@@ -242,35 +242,97 @@ describe("HTTP API", () => {
       assert.equal(response.json().markers["888"], undefined);
     });
 
-    it("lets a moderator vouch for someone on their channel", async () => {
+    it("lets a moderator vouch for someone on their own channel", async () => {
+      // The ban is somewhere else; the vouch is Alice deciding it does not
+      // matter in her chat.
       bans.record({
         offenderId: OFFENDER,
-        channelId: CHANNEL,
-        channelLogin: "alice",
+        channelId: OTHER_CHANNEL,
+        channelLogin: "bob",
       });
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL), 1);
 
-      const response = await send("POST", `/v1/bans/${OFFENDER}/clear`, ALICE_AUTH, {
+      const response = await send("POST", `/v1/bans/${OFFENDER}/vouch`, ALICE_AUTH, {
         channelId: CHANNEL,
       });
 
       assert.equal(response.statusCode, 200);
       assert.equal(response.json().changed, true);
-      assert.equal(bans.markerCount(OFFENDER, OTHER_CHANNEL), 0);
+      assert.equal(response.json().vouched, true);
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL), 0);
+    });
+
+    it("keeps a vouch from reaching into another channel's view", async () => {
+      bans.record({
+        offenderId: OFFENDER,
+        channelId: OTHER_CHANNEL,
+        channelLogin: "bob",
+      });
+
+      await send("POST", `/v1/bans/${OFFENDER}/vouch`, ALICE_AUTH, {
+        channelId: CHANNEL,
+      });
+
+      // Alice moderates CHANNEL and nothing else, so her decision must not
+      // hide the record from anyone reading a different chat.
+      assert.equal(bans.markerCount(OFFENDER, "1003"), 1);
+    });
+
+    it("lets a moderator withdraw their channel's vouch", async () => {
+      bans.record({
+        offenderId: OFFENDER,
+        channelId: OTHER_CHANNEL,
+        channelLogin: "bob",
+      });
+      bans.vouch(OFFENDER, CHANNEL, ALICE);
+
+      const response = await send(
+        "DELETE",
+        `/v1/bans/${OFFENDER}/vouch`,
+        ALICE_AUTH,
+        { channelId: CHANNEL },
+      );
+
+      assert.equal(response.statusCode, 200);
+      assert.equal(response.json().vouched, false);
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL), 1);
     });
 
     it("refuses a vouch on a channel the caller does not moderate", async () => {
       bans.record({
         offenderId: OFFENDER,
-        channelId: CHANNEL,
-        channelLogin: "alice",
+        channelId: OTHER_CHANNEL,
+        channelLogin: "bob",
       });
 
-      const response = await send("POST", `/v1/bans/${OFFENDER}/clear`, BOB_AUTH, {
+      const response = await send("POST", `/v1/bans/${OFFENDER}/vouch`, BOB_AUTH, {
         channelId: CHANNEL,
       });
 
       assert.equal(response.statusCode, 403);
-      assert.equal(bans.markerCount(OFFENDER, OTHER_CHANNEL), 1);
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL), 1);
+    });
+
+    it("reports whether the reading channel has already vouched", async () => {
+      bans.record({
+        offenderId: OFFENDER,
+        channelId: OTHER_CHANNEL,
+        channelLogin: "bob",
+      });
+
+      const before = await get(
+        `/v1/bans/${OFFENDER}?channel=${CHANNEL}`,
+        ALICE_AUTH,
+      );
+      assert.equal(before.json().vouched, false);
+
+      bans.vouch(OFFENDER, CHANNEL, ALICE);
+
+      const after = await get(
+        `/v1/bans/${OFFENDER}?channel=${CHANNEL}`,
+        ALICE_AUTH,
+      );
+      assert.equal(after.json().vouched, true);
     });
   });
 

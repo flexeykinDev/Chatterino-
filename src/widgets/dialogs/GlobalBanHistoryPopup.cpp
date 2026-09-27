@@ -61,15 +61,16 @@ GlobalBanHistoryPopup::GlobalBanHistoryPopup(QString offenderId,
 
     if (this->canVouch_)
     {
-        this->vouchButton_ = new QPushButton(
-            tr("Vouch for them here"), this);
+        this->vouchButton_ = new QPushButton(this);
         this->vouchButton_->setToolTip(
-            tr("Hides this marker for everyone watching this channel. It does "
-               "not undo any ban."));
-        QObject::connect(this->vouchButton_, &QPushButton::clicked, this, [this] {
-            this->vouch();
-        });
+            tr("Hides this marker for everyone reading this channel, and only "
+               "this channel. It does not undo any ban."));
+        QObject::connect(this->vouchButton_, &QPushButton::clicked, this,
+                         [this] {
+                             this->toggleVouch();
+                         });
         root->addWidget(this->vouchButton_);
+        this->updateVouchButton();
     }
 
     this->load();
@@ -130,6 +131,9 @@ void GlobalBanHistoryPopup::showSummary(const GlobalBanSummary &summary)
 {
     this->showMessage(QString{});
 
+    this->vouched_ = summary.vouched;
+    this->updateVouchButton();
+
     if (summary.history.empty())
     {
         this->heading_->setText(
@@ -137,11 +141,24 @@ void GlobalBanHistoryPopup::showSummary(const GlobalBanSummary &summary)
         return;
     }
 
-    this->heading_->setText(
-        //: %1 is a chatter's name, %n the number of channels they are still
-        //: banned on as seen from the channel being read.
-        tr("%1 is banned on %n other channel(s).", "", summary.markerCount)
-            .arg(this->offenderName_));
+    if (summary.vouched)
+    {
+        // The marker is hidden here, so the count would read as zero and say
+        // nothing useful. What matters is that this channel made a decision.
+        this->heading_->setText(
+            //: %1 is a chatter's name. Shown when this channel has vouched for
+            //: them, so their bans elsewhere raise no marker here.
+            tr("This channel vouches for %1. Their record elsewhere is below.")
+                .arg(this->offenderName_));
+    }
+    else
+    {
+        this->heading_->setText(
+            //: %1 is a chatter's name, %n the number of channels they are
+            //: still banned on as seen from the channel being read.
+            tr("%1 is banned on %n other channel(s).", "", summary.markerCount)
+                .arg(this->offenderName_));
+    }
 
     for (const auto &record : summary.history)
     {
@@ -163,10 +180,6 @@ QWidget *GlobalBanHistoryPopup::buildRecordCard(const GlobalBanRecord &record)
     if (record.isLifted())
     {
         status = tr("no longer in force");
-    }
-    else if (record.isCleared())
-    {
-        status = tr("vouched for by a moderator there");
     }
 
     auto headline = status.isEmpty()
@@ -198,7 +211,19 @@ QWidget *GlobalBanHistoryPopup::buildRecordCard(const GlobalBanRecord &record)
     return card;
 }
 
-void GlobalBanHistoryPopup::vouch()
+void GlobalBanHistoryPopup::updateVouchButton()
+{
+    if (this->vouchButton_ == nullptr)
+    {
+        return;
+    }
+
+    this->vouchButton_->setText(this->vouched_
+                                    ? tr("Withdraw this channel's vouch")
+                                    : tr("Vouch for them in this channel"));
+}
+
+void GlobalBanHistoryPopup::toggleVouch()
 {
     auto *companion = getApp()->getCompanion();
     if (companion == nullptr)
@@ -211,8 +236,10 @@ void GlobalBanHistoryPopup::vouch()
         this->vouchButton_->setEnabled(false);
     }
 
+    auto granting = !this->vouched_;
+
     QPointer<GlobalBanHistoryPopup> self(this);
-    companion->vouch(this->offenderId_, this->channelId_, [self](bool ok) {
+    auto done = [self, granting](bool ok) {
         if (self.isNull())
         {
             return;
@@ -220,16 +247,26 @@ void GlobalBanHistoryPopup::vouch()
 
         if (self->vouchButton_ != nullptr)
         {
-            // Left disabled on success: the vouch stands, and pressing it again
-            // would only ask the service to do what it has already done.
-            self->vouchButton_->setEnabled(!ok);
+            self->vouchButton_->setEnabled(true);
         }
 
         if (ok)
         {
+            self->vouched_ = granting;
+            // Re-read rather than assume: the service is what decides, and it
+            // may have been told something else in the meantime.
             self->load();
         }
-    });
+    };
+
+    if (granting)
+    {
+        companion->vouch(this->offenderId_, this->channelId_, done);
+    }
+    else
+    {
+        companion->withdrawVouch(this->offenderId_, this->channelId_, done);
+    }
 }
 
 }  // namespace chatterino

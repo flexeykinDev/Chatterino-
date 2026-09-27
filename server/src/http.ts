@@ -165,6 +165,9 @@ export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> 
     return {
       offenderId,
       markerCount: deps.bans.markerCount(offenderId, viewing),
+      // Whether the channel being read has already vouched, so the client can
+      // offer to withdraw it rather than to grant it again.
+      vouched: viewing !== "" && deps.bans.isVouched(offenderId, viewing),
       history: deps.bans.historyFor(offenderId),
       activeChannels: deps.bans.activeChannelsFor(offenderId),
     };
@@ -205,7 +208,7 @@ export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> 
     return reply.code(201).send(deps.bans.record(body));
   });
 
-  app.post("/v1/bans/:offenderId/clear", async (request, reply) => {
+  app.post("/v1/bans/:offenderId/vouch", async (request, reply) => {
     const caller = await authenticate(request);
     if (caller === null) {
       return reply.code(401).send({ error: "authentication required" });
@@ -225,11 +228,15 @@ export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> 
       return reply.code(403).send({ error: "you do not moderate that channel" });
     }
 
-    const changed = deps.bans.clear(offenderId, channelId, caller.identity.twitchId);
-    return { changed };
+    const changed = deps.bans.vouch(
+      offenderId,
+      channelId,
+      caller.identity.twitchId,
+    );
+    return { changed, vouched: true };
   });
 
-  app.delete("/v1/bans/:offenderId/clear", async (request, reply) => {
+  app.delete("/v1/bans/:offenderId/vouch", async (request, reply) => {
     const caller = await authenticate(request);
     if (caller === null) {
       return reply.code(401).send({ error: "authentication required" });
@@ -247,7 +254,10 @@ export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> 
       return reply.code(403).send({ error: "you do not moderate that channel" });
     }
 
-    return { changed: deps.bans.unclear(offenderId, channelId) };
+    return {
+      changed: deps.bans.withdrawVouch(offenderId, channelId),
+      vouched: false,
+    };
   });
 
   // --- shadow chat moderation -------------------------------------------

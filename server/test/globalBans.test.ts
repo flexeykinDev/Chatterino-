@@ -8,6 +8,7 @@ const CHANNEL_A = "1001";
 const CHANNEL_B = "1002";
 const CHANNEL_C = "1003";
 const MODERATOR = "555";
+const OTHER_MODERATOR = "666";
 
 describe("GlobalBans", () => {
   let db: Db;
@@ -37,7 +38,6 @@ describe("GlobalBans", () => {
     assert.equal(record.channelLogin, "alice");
     assert.equal(record.reason, "spam");
     assert.equal(record.liftedAt, null);
-    assert.equal(record.clearedAt, null);
     assert.deepEqual(
       record.context.map((line) => line.body),
       ["buy followers"],
@@ -154,23 +154,50 @@ describe("GlobalBans", () => {
       assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
     });
 
-    it("excludes a ban that was vouched for", () => {
+    it("is zero where the viewing channel has vouched", () => {
       banOn(CHANNEL_A);
       banOn(CHANNEL_B);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+
+      // C has decided it trusts this person, so C sees no marker at all —
+      // a vouch is about the person, not about any one ban.
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 0);
+    });
+
+    it("leaves other channels' views alone", () => {
+      banOn(CHANNEL_A);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+
+      // One chat forgiving somebody says nothing about whether another should,
+      // and a moderator has no standing in a channel they do not moderate.
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL_B), 1);
+    });
+
+    it("counts again once a vouch is withdrawn", () => {
+      banOn(CHANNEL_A);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+      bans.withdrawVouch(OFFENDER, CHANNEL_C);
 
       assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
     });
 
-    it("counts again once a re-ban overrides a vouch", () => {
+    it("drops a channel's own vouch when it bans the person itself", () => {
+      bans.vouch(OFFENDER, CHANNEL_A, MODERATOR);
       banOn(CHANNEL_A);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
+      banOn(CHANNEL_B);
+
+      // A vouched and then banned them: it has plainly changed its mind, so
+      // A's view goes back to showing what other channels have recorded.
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_A), false);
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL_A), 1);
+    });
+
+    it("keeps another channel's vouch when a ban is recorded", () => {
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+      banOn(CHANNEL_A);
+
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_C), true);
       assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 0);
-
-      clock += 1000;
-      banOn(CHANNEL_A);
-
-      assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
     });
 
     it("counts again once a re-ban overrides a lift", () => {
@@ -251,40 +278,48 @@ describe("GlobalBans", () => {
       assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
     });
 
-    it("attributes a vouch to the moderator who made it", () => {
-      banOn(CHANNEL_A);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
+    it("records a vouch against the channel that granted it", () => {
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
 
-      const record = bans.historyFor(OFFENDER)[0];
-      assert.equal(record?.clearedBy, MODERATOR);
-      assert.equal(record?.clearedAt, clock);
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_C), true);
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_A), false);
     });
 
-    it("does not vouch twice", () => {
-      banOn(CHANNEL_A);
+    it("can vouch for someone with no bans at all", () => {
+      // Nothing requires a ban to exist first: a channel may decide it trusts
+      // somebody before anyone else has recorded anything about them.
+      assert.equal(bans.vouch(OFFENDER, CHANNEL_C, MODERATOR), true);
+      assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 0);
+    });
 
-      assert.equal(bans.clear(OFFENDER, CHANNEL_A, MODERATOR), true);
-      assert.equal(bans.clear(OFFENDER, CHANNEL_A, MODERATOR), false);
+    it("keeps one vouch per channel, crediting whoever stood behind it last", () => {
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+      bans.vouch(OFFENDER, CHANNEL_C, OTHER_MODERATOR);
+
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_C), true);
+      assert.equal(bans.vouchedBy(OFFENDER, CHANNEL_C), OTHER_MODERATOR);
     });
 
     it("can withdraw a vouch", () => {
       banOn(CHANNEL_A);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
-      bans.unclear(OFFENDER, CHANNEL_A);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
 
-      assert.equal(bans.historyFor(OFFENDER)[0]?.clearedBy, null);
+      assert.equal(bans.withdrawVouch(OFFENDER, CHANNEL_C), true);
+      assert.equal(bans.isVouched(OFFENDER, CHANNEL_C), false);
       assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
     });
 
-    it("keeps one channel's vouch from affecting another channel's view", () => {
-      banOn(CHANNEL_A);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
+    it("reports false when withdrawing a vouch that was never made", () => {
+      assert.equal(bans.withdrawVouch(OFFENDER, CHANNEL_C), false);
+    });
 
-      // A vouched-for ban stops counting everywhere, but the ban on B is
-      // untouched by A's decision.
-      banOn(CHANNEL_B);
-      assert.equal(bans.markerCount(OFFENDER, CHANNEL_C), 1);
-      assert.equal(bans.historyFor(OFFENDER).length, 2);
+    it("leaves the history intact when vouching", () => {
+      banOn(CHANNEL_A);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
+
+      // A vouch hides the marker in one chat. It does not undo a ban, and the
+      // record of what happened stays readable.
+      assert.equal(bans.historyFor(OFFENDER).length, 1);
     });
   });
 
@@ -305,10 +340,11 @@ describe("GlobalBans", () => {
       assert.deepEqual(bans.activeChannelsFor(OFFENDER), [CHANNEL_B]);
     });
 
-    it("keeps a vouched-for ban in the relay list", () => {
-      // A vouch hides the marker; it does not mean the ban was undone.
+    it("keeps a ban in the relay list despite a vouch elsewhere", () => {
+      // A vouch hides the marker in one chat; it does not mean the ban was
+      // undone, and another channel may still want to relay it.
       banOn(CHANNEL_A);
-      bans.clear(OFFENDER, CHANNEL_A, MODERATOR);
+      bans.vouch(OFFENDER, CHANNEL_C, MODERATOR);
 
       assert.deepEqual(bans.activeChannelsFor(OFFENDER), [CHANNEL_A]);
     });

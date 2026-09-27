@@ -20,14 +20,6 @@
         <translation>История банов</translation>
     </message>
     <message>
-        <source>Vouch for them here</source>
-        <translation>Поручиться за него здесь</translation>
-    </message>
-    <message>
-        <source>Hides this marker for everyone watching this channel. It does not undo any ban.</source>
-        <translation>Скрывает метку для всех, кто смотрит этот канал. Сами баны не отменяются.</translation>
-    </message>
-    <message>
         <source>Loading…</source>
         <translation>Загрузка…</translation>
     </message>
@@ -57,10 +49,6 @@
         <translation>больше не действует</translation>
     </message>
     <message>
-        <source>vouched for by a moderator there</source>
-        <translation>модератор канала поручился</translation>
-    </message>
-    <message>
         <source>%1 · %2</source>
         <translation>%1 · %2</translation>
     </message>
@@ -71,6 +59,23 @@
     <message>
         <source>Reason: %1</source>
         <translation>Причина: %1</translation>
+    </message>
+    <message>
+        <source>Hides this marker for everyone reading this channel, and only this channel. It does not undo any ban.</source>
+        <translation>Скрывает метку для всех, кто читает этот канал, и только его. Сами баны не отменяются.</translation>
+    </message>
+    <message>
+        <source>This channel vouches for %1. Their record elsewhere is below.</source>
+        <extracomment>%1 is a chatter&apos;s name. Shown when this channel has vouched for them, so their bans elsewhere raise no marker here.</extracomment>
+        <translation>Этот канал поручился за %1. Ниже — что было на других каналах.</translation>
+    </message>
+    <message>
+        <source>Withdraw this channel&apos;s vouch</source>
+        <translation>Отозвать поручительство канала</translation>
+    </message>
+    <message>
+        <source>Vouch for them in this channel</source>
+        <translation>Поручиться за него на этом канале</translation>
     </message>
 </context>
 <context>

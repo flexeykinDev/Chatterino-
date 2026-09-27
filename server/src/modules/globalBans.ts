@@ -31,9 +31,6 @@ export interface BanRecord {
   bannedAt: number;
   /** Set once revalidation found the ban no longer in force. */
   liftedAt: number | null;
-  /** Set when a moderator of that channel vouched for the offender. */
-  clearedAt: number | null;
-  clearedBy: string | null;
   /** What the offender said before the ban, oldest first. */
   context: BanContextLine[];
 }
@@ -55,8 +52,6 @@ interface BanRow {
   reason: string;
   banned_at: number;
   lifted_at: number | null;
-  cleared_at: number | null;
-  cleared_by: string | null;
 }
 
 interface ContextRow {
@@ -78,8 +73,10 @@ export class GlobalBans {
    * Records a ban, or refreshes an existing one for the same channel.
    *
    * Re-banning someone clears a previous `lifted_at`, because the ban is in
-   * force again, and clears a previous vouch, because the channel that vouched
-   * has evidently changed its mind.
+   * force again. It also withdraws that channel's own vouch, if it had one:
+   * a channel that vouched for somebody and then banned them has plainly
+   * changed its mind. Other channels' vouches are untouched, because their
+   * opinion is theirs.
    */
   record(input: RecordBanInput): BanRecord {
     const bannedAt = this.now();
@@ -91,15 +88,13 @@ export class GlobalBans {
         .prepare(
           `INSERT INTO global_bans
              (offender_id, channel_id, channel_login, reason, banned_at,
-              lifted_at, cleared_by, cleared_at)
-           VALUES (?, ?, ?, ?, ?, NULL, NULL, NULL)
+              lifted_at)
+           VALUES (?, ?, ?, ?, ?, NULL)
            ON CONFLICT (offender_id, channel_id) DO UPDATE SET
              channel_login = excluded.channel_login,
              reason        = excluded.reason,
              banned_at     = excluded.banned_at,
-             lifted_at     = NULL,
-             cleared_by    = NULL,
-             cleared_at    = NULL
+             lifted_at     = NULL
            RETURNING id`,
         )
         .get(
@@ -109,6 +104,12 @@ export class GlobalBans {
           reason,
           bannedAt,
         ) as { id: number };
+
+      this.db
+        .prepare(
+          "DELETE FROM ban_vouches WHERE offender_id = ? AND channel_id = ?",
+        )
+        .run(input.offenderId, input.channelId);
 
       // Replace rather than append: this is the context for the current ban.
       this.db.prepare("DELETE FROM global_ban_context WHERE ban_id = ?").run(row.id);
@@ -128,8 +129,6 @@ export class GlobalBans {
         reason,
         bannedAt,
         liftedAt: null,
-        clearedAt: null,
-        clearedBy: null,
         context,
       };
     })();
@@ -163,31 +162,68 @@ export class GlobalBans {
   }
 
   /**
-   * A moderator of `channelId` vouches for the offender, hiding the marker for
-   * everyone watching that channel. `clearedBy` is the moderator's Twitch id,
-   * kept so the decision is attributable.
+   * A moderator of `channelId` vouches for the offender: that chat has decided
+   * it trusts them despite their record elsewhere, so no marker is shown there.
+   *
+   * The vouch belongs to the channel that granted it and to nobody else. One
+   * chat forgiving somebody says nothing about whether another should, and a
+   * moderator should not be able to hide a record from chats they have no
+   * standing in.
+   *
+   * Idempotent: vouching twice leaves one vouch, with the later moderator
+   * recorded, since they are the one who most recently stood behind it.
    */
-  clear(offenderId: string, channelId: string, clearedBy: string): boolean {
+  vouch(offenderId: string, channelId: string, moderatorId: string): boolean {
     const result = this.db
       .prepare(
-        `UPDATE global_bans SET cleared_by = ?, cleared_at = ?
-         WHERE offender_id = ? AND channel_id = ? AND cleared_at IS NULL`,
+        `INSERT INTO ban_vouches
+           (offender_id, channel_id, moderator_id, created_at)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT (offender_id, channel_id) DO UPDATE SET
+           moderator_id = excluded.moderator_id,
+           created_at   = excluded.created_at`,
       )
-      .run(clearedBy, this.now(), offenderId, channelId);
+      .run(offenderId, channelId, moderatorId, this.now());
 
     return result.changes > 0;
   }
 
-  /** Withdraws a vouch. */
-  unclear(offenderId: string, channelId: string): boolean {
+  /** Withdraws a vouch, so the marker returns for that channel. */
+  withdrawVouch(offenderId: string, channelId: string): boolean {
     const result = this.db
       .prepare(
-        `UPDATE global_bans SET cleared_by = NULL, cleared_at = NULL
-         WHERE offender_id = ? AND channel_id = ?`,
+        "DELETE FROM ban_vouches WHERE offender_id = ? AND channel_id = ?",
       )
       .run(offenderId, channelId);
 
     return result.changes > 0;
+  }
+
+  /**
+   * Which moderator granted this channel's vouch, or null when there is none.
+   * Kept so the decision is attributable: a vouch is somebody's judgement, and
+   * the chat should be able to see whose.
+   */
+  vouchedBy(offenderId: string, channelId: string): string | null {
+    const row = this.db
+      .prepare(
+        `SELECT moderator_id FROM ban_vouches
+         WHERE offender_id = ? AND channel_id = ?`,
+      )
+      .get(offenderId, channelId) as { moderator_id: string } | undefined;
+
+    return row?.moderator_id ?? null;
+  }
+
+  /** Whether `channelId` has vouched for this offender. */
+  isVouched(offenderId: string, channelId: string): boolean {
+    return (
+      this.db
+        .prepare(
+          "SELECT 1 FROM ban_vouches WHERE offender_id = ? AND channel_id = ?",
+        )
+        .get(offenderId, channelId) !== undefined
+    );
   }
 
   /**
@@ -198,7 +234,7 @@ export class GlobalBans {
     const rows = this.db
       .prepare(
         `SELECT id, offender_id, channel_id, channel_login, reason, banned_at,
-                lifted_at, cleared_at, cleared_by
+                lifted_at
          FROM global_bans
          WHERE offender_id = ?
          ORDER BY banned_at DESC, id DESC`,
@@ -219,8 +255,6 @@ export class GlobalBans {
       reason: row.reason,
       bannedAt: row.banned_at,
       liftedAt: row.lifted_at,
-      clearedAt: row.cleared_at,
-      clearedBy: row.cleared_by,
       context: context.get(row.id) ?? [],
     }));
   }
@@ -229,19 +263,24 @@ export class GlobalBans {
    * How many bans should make a marker appear next to this person, as seen from
    * `viewingChannelId`.
    *
-   * Lifted bans never count. A ban vouched for by the channel being viewed does
-   * not count there, but still counts elsewhere: one channel's decision to
-   * forgive someone is not binding on another. A ban on the viewing channel
-   * itself does not count either, since that chat can already see it.
+   * Lifted bans never count, and neither does a ban on the viewing channel
+   * itself, since that chat can already see it.
+   *
+   * A vouch from the viewing channel suppresses the marker there entirely: it
+   * means "we trust this person here", which is about the person rather than
+   * about any one ban. It changes nothing for anyone else.
    */
   markerCount(offenderId: string, viewingChannelId: string): number {
+    if (this.isVouched(offenderId, viewingChannelId)) {
+      return 0;
+    }
+
     const row = this.db
       .prepare(
         `SELECT COUNT(*) AS count FROM global_bans
          WHERE offender_id = ?
            AND lifted_at IS NULL
-           AND channel_id <> ?
-           AND cleared_at IS NULL`,
+           AND channel_id <> ?`,
       )
       .get(offenderId, viewingChannelId) as { count: number };
 
@@ -263,16 +302,21 @@ export class GlobalBans {
 
     const unique = [...new Set(offenderIds)];
     const placeholders = unique.map(() => "?").join(", ");
+    // The vouch check is part of the same statement rather than a second
+    // query: rendering a chat window is one request, and it should stay one
+    // round trip to the database too.
     const rows = this.db
       .prepare(
         `SELECT offender_id, COUNT(*) AS count FROM global_bans
          WHERE offender_id IN (${placeholders})
            AND lifted_at IS NULL
            AND channel_id <> ?
-           AND cleared_at IS NULL
+           AND offender_id NOT IN (
+             SELECT offender_id FROM ban_vouches WHERE channel_id = ?
+           )
          GROUP BY offender_id`,
       )
-      .all(...unique, viewingChannelId) as {
+      .all(...unique, viewingChannelId, viewingChannelId) as {
       offender_id: string;
       count: number;
     }[];

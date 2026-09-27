@@ -39,9 +39,9 @@ public:
     [[nodiscard]] std::optional<QUrl> history(const QString &offenderId,
                                               const QString &channelId) const;
 
-    /// `POST`/`DELETE /v1/bans/:offenderId/clear` — vouch for someone, or take
+    /// `POST`/`DELETE /v1/bans/:offenderId/vouch` — vouch for someone, or take
     /// the vouch back. Both verbs share a URL; the caller picks the verb.
-    [[nodiscard]] std::optional<QUrl> clear(const QString &offenderId) const;
+    [[nodiscard]] std::optional<QUrl> vouch(const QString &offenderId) const;
 
 private:
     /// Normalised: no trailing slash, empty when unconfigured.
@@ -73,8 +73,9 @@ public:
     void fetchHistory(const QString &offenderId, const QString &channelId,
                       SummaryCallback callback) const;
 
-    /// Vouches for a chatter on `channelId`, hiding their marker for everyone
-    /// watching it. Only a moderator of that channel may do this; the service
+    /// Vouches for a chatter on `channelId`: that chat has decided it trusts
+    /// them, so no marker is shown there. It changes nothing for any other
+    /// channel. Only a moderator of that channel may do this; the service
     /// enforces that, we do not guess at it.
     void vouch(const QString &offenderId, const QString &channelId,
                ChangedCallback callback) const;
