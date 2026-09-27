@@ -65,6 +65,10 @@ class CreatePollDialog final : public BasePopup
 public:
     explicit CreatePollDialog(ChannelPtr channel, QWidget *parent = nullptr);
 
+    /// Adds a choice row, for a test that exercises the path that refreshes
+    /// the form. Not part of how the dialog is used.
+    void addChoiceForTest(const QString &text);
+
 private:
     void addChoiceRow(const QString &text = {});
     void removeChoiceRow(QLineEdit *edit);

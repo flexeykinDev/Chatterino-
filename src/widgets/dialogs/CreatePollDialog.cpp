@@ -157,11 +157,6 @@ CreatePollDialog::CreatePollDialog(ChannelPtr channel, QWidget *parent)
     });
     root->addWidget(this->addChoice_);
 
-    // Two rows to begin with: the fewest a poll can have, so the form opens
-    // showing exactly what must be filled in.
-    this->addChoiceRow();
-    this->addChoiceRow();
-
     this->problem_ = new QLabel(this);
     this->problem_->setWordWrap(true);
     root->addWidget(this->problem_);
@@ -190,8 +185,21 @@ CreatePollDialog::CreatePollDialog(ChannelPtr channel, QWidget *parent)
                          this->refreshValidity();
                      });
 
+    // Only now that everything refreshValidity() touches exists. Adding a row
+    // refreshes, and doing it earlier dereferenced widgets not yet built.
+    //
+    // Two rows to begin with: the fewest a poll can have, so the form opens
+    // showing exactly what must be filled in.
+    this->addChoiceRow();
+    this->addChoiceRow();
+
     this->refreshValidity();
     this->title_->setFocus();
+}
+
+void CreatePollDialog::addChoiceForTest(const QString &text)
+{
+    this->addChoiceRow(text);
 }
 
 void CreatePollDialog::addChoiceRow(const QString &text)
@@ -281,6 +289,14 @@ PollDraft CreatePollDialog::draft() const
 
 void CreatePollDialog::refreshValidity()
 {
+    // Called while the form is still being built, from anything that adds a
+    // row, so it must tolerate a half-made dialog rather than assume one.
+    if (this->problem_ == nullptr || this->create_ == nullptr ||
+        this->addChoice_ == nullptr)
+    {
+        return;
+    }
+
     auto problem = this->draft().problem();
 
     this->problem_->setText(problem);
