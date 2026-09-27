@@ -501,6 +501,8 @@ set(SOURCE_FILES
         providers/twitch/ChannelPointReward.hpp
         providers/twitch/IrcMessageHandler.cpp
         providers/twitch/IrcMessageHandler.hpp
+        providers/twitch/ChatModes.cpp
+        providers/twitch/ChatModes.hpp
         providers/twitch/PollState.cpp
         providers/twitch/PollState.hpp
         providers/twitch/PubSubClient.cpp
