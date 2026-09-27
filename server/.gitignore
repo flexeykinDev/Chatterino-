@@ -6,3 +6,8 @@ data/
 *.sqlite-shm
 *.sqlite-wal
 .env
+
+# Scratch probes for capturing live PubSub payloads.
+*-probe.mjs
+*-bg.mjs
+*-watch.mjs
