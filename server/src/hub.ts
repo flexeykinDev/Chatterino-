@@ -71,6 +71,22 @@ export class Hub {
     return this.connections.size;
   }
 
+  /**
+   * Every room and how many connections are in it.
+   *
+   * Exposed on /health because the question "are these two clients actually in
+   * the same room?" has no other answer from outside, and a typing indicator
+   * that shows nothing looks identical whether the frames are not being sent,
+   * not being received, or being sent into different rooms.
+   */
+  get roomOccupancy(): Record<string, number> {
+    const occupancy: Record<string, number> = {};
+    for (const [channelId, connections] of this.rooms) {
+      occupancy[channelId] = connections.size;
+    }
+    return occupancy;
+  }
+
   /** Number of connections in a room, for diagnostics. */
   roomSize(channelId: string): number {
     return this.rooms.get(channelId)?.size ?? 0;

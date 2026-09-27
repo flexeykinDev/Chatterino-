@@ -145,6 +145,7 @@ export async function buildApi(deps: ApiDependencies): Promise<FastifyInstance> 
   app.get("/health", async () => ({
     ok: true,
     connections: deps.hub.connectionCount,
+    rooms: deps.hub.roomOccupancy,
   }));
 
   // --- ban registry ------------------------------------------------------
