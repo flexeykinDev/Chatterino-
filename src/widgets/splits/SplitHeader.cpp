@@ -724,102 +724,6 @@ std::unique_ptr<QMenu> SplitHeader::createMainMenu()
     return menu;
 }
 
-std::unique_ptr<QMenu> SplitHeader::createChatModeMenu()
-{
-    auto menu = std::make_unique<QMenu>();
-
-    this->modeActionSetSub = new QAction("Subscriber only", this);
-    this->modeActionSetEmote = new QAction("Emote only", this);
-    this->modeActionSetSlow = new QAction("Slow", this);
-    this->modeActionSetR9k = new QAction("Unique chat (R9K)", this);
-    this->modeActionSetFollowers = new QAction("Followers only", this);
-
-    this->modeActionSetFollowers->setCheckable(true);
-    this->modeActionSetSub->setCheckable(true);
-    this->modeActionSetEmote->setCheckable(true);
-    this->modeActionSetSlow->setCheckable(true);
-    this->modeActionSetR9k->setCheckable(true);
-
-    menu->addAction(this->modeActionSetEmote);
-    menu->addAction(this->modeActionSetSub);
-    menu->addAction(this->modeActionSetSlow);
-    menu->addAction(this->modeActionSetR9k);
-    menu->addAction(this->modeActionSetFollowers);
-
-    auto execCommand = [this](const QString &command) {
-        auto text = getApp()->getCommands()->execCommand(
-            command, this->split_->getChannel(), false);
-        this->split_->getChannel()->sendMessage(text);
-    };
-    auto toggle = [execCommand](const QString &command,
-                                QAction *action) mutable {
-        execCommand(command + (action->isChecked() ? "" : "off"));
-        action->setChecked(!action->isChecked());
-    };
-
-    QObject::connect(this->modeActionSetSub, &QAction::triggered, this,
-                     [this, toggle]() mutable {
-                         toggle("/subscribers", this->modeActionSetSub);
-                     });
-
-    QObject::connect(this->modeActionSetEmote, &QAction::triggered, this,
-                     [this, toggle]() mutable {
-                         toggle("/emoteonly", this->modeActionSetEmote);
-                     });
-
-    QObject::connect(this->modeActionSetSlow, &QAction::triggered, this,
-                     [this, execCommand]() {
-                         if (!this->modeActionSetSlow->isChecked())
-                         {
-                             execCommand("/slowoff");
-                             this->modeActionSetSlow->setChecked(false);
-                             return;
-                         };
-                         auto ok = bool();
-                         auto seconds = QInputDialog::getInt(
-                             this, "", "Seconds:", 10, 0, 500, 1, &ok,
-                             Qt::FramelessWindowHint);
-                         if (ok)
-                         {
-                             execCommand(QString("/slow %1").arg(seconds));
-                         }
-                         else
-                         {
-                             this->modeActionSetSlow->setChecked(false);
-                         }
-                     });
-
-    QObject::connect(this->modeActionSetFollowers, &QAction::triggered, this,
-                     [this, execCommand]() {
-                         if (!this->modeActionSetFollowers->isChecked())
-                         {
-                             execCommand("/followersoff");
-                             this->modeActionSetFollowers->setChecked(false);
-                             return;
-                         };
-                         auto ok = bool();
-                         auto time = QInputDialog::getText(
-                             this, "", "Time:", QLineEdit::Normal, "15m", &ok,
-                             Qt::FramelessWindowHint,
-                             Qt::ImhLowercaseOnly | Qt::ImhPreferNumbers);
-                         if (ok)
-                         {
-                             execCommand(QString("/followers %1").arg(time));
-                         }
-                         else
-                         {
-                             this->modeActionSetFollowers->setChecked(false);
-                         }
-                     });
-
-    QObject::connect(this->modeActionSetR9k, &QAction::triggered, this,
-                     [this, toggle]() mutable {
-                         toggle("/r9kbeta", this->modeActionSetR9k);
-                     });
-
-    return menu;
-}
-
 void SplitHeader::updateRoomModes()
 {
     assert(this->modeButton_ != nullptr);
@@ -835,13 +739,6 @@ void SplitHeader::updateRoomModes()
             auto roomModes = twitchChannel->accessRoomModes();
             text = formatRoomModeUnclean(roomModes);
 
-            // Set menu action
-            this->modeActionSetR9k->setChecked(roomModes->r9k);
-            this->modeActionSetSlow->setChecked(roomModes->slowMode > 0);
-            this->modeActionSetEmote->setChecked(roomModes->emoteOnly);
-            this->modeActionSetSub->setChecked(roomModes->submode);
-            this->modeActionSetFollowers->setChecked(roomModes->followerOnly !=
-                                                     -1);
         }
         cleanRoomModeText(text, twitchChannel->hasModRights());
 
@@ -865,7 +762,6 @@ void SplitHeader::updateRoomModes()
             this->modeButton_->hide();
         }
 
-        // Update the mode button menu actions
     }
     else
     {

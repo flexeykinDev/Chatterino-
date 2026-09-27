@@ -56,7 +56,6 @@ protected:
 private:
     void initializeLayout();
     std::unique_ptr<QMenu> createMainMenu();
-    std::unique_ptr<QMenu> createChatModeMenu();
 
     /**
      * @brief   Reset the thumbnail data and timer so a new
@@ -80,11 +79,6 @@ private:
     Label *titleLabel_{};
 
     LabelButton *modeButton_{};
-    QAction *modeActionSetEmote{};
-    QAction *modeActionSetSub{};
-    QAction *modeActionSetSlow{};
-    QAction *modeActionSetR9k{};
-    QAction *modeActionSetFollowers{};
 
     SvgButton *pinButton_{};
 
