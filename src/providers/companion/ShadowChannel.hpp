@@ -9,6 +9,9 @@
 #include <pajlada/signals/signalholder.hpp>
 #include <QCoreApplication>
 #include <QHash>
+#include <QObject>
+
+#include <vector>
 #include <QString>
 
 namespace chatterino {
@@ -47,6 +50,14 @@ public:
     /// The Twitch login this room belongs to.
     [[nodiscard]] const QString &twitchLogin() const;
 
+    /// Finds the room id and joins.
+    ///
+    /// Deliberately not done in the constructor. Channels are made from inside
+    /// the channel manager's lookup, which holds its mutex, and finding the
+    /// Twitch channel goes back through that same lookup — relocking a
+    /// non-recursive mutex on one thread, which aborts rather than waits.
+    void initialize();
+
 private:
     /// Finds the room id from the Twitch channel, waiting for it when the
     /// channel does not know it yet.
@@ -62,6 +73,10 @@ private:
     QHash<QString, QString> pending_;
 
     pajlada::Signals::SignalHolder signalHolder_;
+    /// The socket outlives this room, so its connections are held and cut by
+    /// hand; a lambda capturing `this` past the destructor is a use after
+    /// free waiting for the next frame to arrive.
+    std::vector<QMetaObject::Connection> socketConnections_;
 };
 
 }  // namespace chatterino

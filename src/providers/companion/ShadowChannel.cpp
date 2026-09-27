@@ -31,16 +31,16 @@ ShadowChannel::ShadowChannel(const QString &login)
 
     auto *socket = companion->socket();
 
-    QObject::connect(
+    this->socketConnections_.push_back(QObject::connect(
         socket, &CompanionSocket::messageReceived, socket,
         [this](const CompanionMessage &message) {
             if (message.channel == this->roomId_)
             {
                 this->addCompanionMessage(message);
             }
-        });
+        }));
 
-    QObject::connect(
+    this->socketConnections_.push_back(QObject::connect(
         socket, &CompanionSocket::roomJoined, socket,
         [this](const QString &channelId,
                const std::vector<CompanionMessage> &history) {
@@ -55,9 +55,10 @@ ShadowChannel::ShadowChannel(const QString &login)
             {
                 this->addCompanionMessage(message);
             }
-        });
+        }));
 
-    QObject::connect(socket, &CompanionSocket::errorReceived, socket,
+    this->socketConnections_.push_back(QObject::connect(
+        socket, &CompanionSocket::errorReceived, socket,
                      [this](const QString &code, const QString &message,
                             const QString &nonce) {
                          auto sent = this->pending_.take(nonce);
@@ -70,14 +71,16 @@ ShadowChannel::ShadowChannel(const QString &login)
                          // somebody wondering which of three messages vanished.
                          this->addSystemMessage(
                              tr("Not sent (%1): %2").arg(code, sent));
-                     });
+                     }));
 
-    QObject::connect(socket, &CompanionSocket::messageAccepted, socket,
+    this->socketConnections_.push_back(QObject::connect(
+        socket, &CompanionSocket::messageAccepted, socket,
                      [this](const QString &nonce, qint64 /*id*/) {
                          this->pending_.remove(nonce);
-                     });
+                     }));
 
-    QObject::connect(socket, &CompanionSocket::restricted, socket,
+    this->socketConnections_.push_back(QObject::connect(
+        socket, &CompanionSocket::restricted, socket,
                      [this](const QString &channelId, const QString &reason) {
                          if (channelId != this->roomId_)
                          {
@@ -90,13 +93,22 @@ ShadowChannel::ShadowChannel(const QString &login)
                                  : tr("You can no longer speak in this room: "
                                       "%1")
                                        .arg(reason));
-                     });
+                     }));
 
+}
+
+void ShadowChannel::initialize()
+{
     this->resolveRoom();
 }
 
 ShadowChannel::~ShadowChannel()
 {
+    for (const auto &connection : this->socketConnections_)
+    {
+        QObject::disconnect(connection);
+    }
+
     auto *companion = getApp()->getCompanion();
     if (companion != nullptr && !this->roomId_.isEmpty())
     {

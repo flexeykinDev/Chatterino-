@@ -600,6 +600,19 @@ std::shared_ptr<Channel> TwitchIrcServer::getCustomChannel(
 
         auto channel = std::make_shared<ShadowChannel>(login);
         weak = channel;
+
+        // Finished after this call returns. Finding the Twitch channel this
+        // room follows goes back through getChannelOrEmpty, and that is what
+        // is holding channelMutex right now — relocking it on this thread
+        // aborts rather than waits.
+        std::weak_ptr<ShadowChannel> pending = channel;
+        postToThread([pending] {
+            if (auto room = pending.lock())
+            {
+                room->initialize();
+            }
+        });
+
         return channel;
     }
 
