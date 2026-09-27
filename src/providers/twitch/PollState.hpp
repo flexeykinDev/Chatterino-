@@ -35,7 +35,9 @@ struct Poll {
         Completed,
         /// Ended early by the broadcaster. The votes still stand.
         Terminated,
-        /// Ended early and hidden. The result is not worth showing.
+        /// Retired. Twitch moves a poll here on its own about a minute after
+        /// it completes — it is the end of the lifecycle rather than a
+        /// broadcaster withdrawing anything.
         Archived,
     };
 
@@ -55,9 +57,12 @@ struct Poll {
     /// Whether votes are still being taken.
     [[nodiscard]] bool isRunning() const;
 
-    /// Whether the result is worth showing once it is over. An archived poll
-    /// was withdrawn, and putting its result on screen would announce
-    /// something the broadcaster chose to take down.
+    /// Whether the result is worth showing once it is over.
+    ///
+    /// An archived poll is one Twitch has retired, which it does by itself
+    /// roughly a minute after the poll ends. By then the result has had its
+    /// moment and the banner should be long gone, so arriving here is a
+    /// backstop rather than the usual way a result stops being shown.
     [[nodiscard]] bool hasShowableResult() const;
 
     /// Seconds until voting closes, floored at zero. Zero for a poll that has

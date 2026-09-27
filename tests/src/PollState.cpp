@@ -63,10 +63,11 @@ TEST(PollState, showsAResultForAPollThatRanOrWasEndedEarly)
     EXPECT_TRUE(pollWith({1}, Poll::Status::Terminated).hasShowableResult());
 }
 
-TEST(PollState, showsNoResultForAWithdrawnPoll)
+TEST(PollState, showsNoResultForARetiredPoll)
 {
-    // Archived means the broadcaster took it down. Putting the result on
-    // screen anyway would announce something they chose to hide.
+    // Observed on a real poll: Twitch sends POLL_COMPLETE when voting ends and
+    // then POLL_ARCHIVE about a minute later, on its own. By the time archive
+    // arrives the banner should be long gone, so this is a backstop.
     EXPECT_FALSE(pollWith({1}, Poll::Status::Archived).hasShowableResult());
 }
 
