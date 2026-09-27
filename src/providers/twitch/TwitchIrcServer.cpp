@@ -26,10 +26,10 @@
 #include "providers/twitch/PubSubManager.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/companion/ShadowChannel.hpp"
+#include "util/PostToThread.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "singletons/Settings.hpp"
 #include "singletons/WindowManager.hpp"
-#include "util/PostToThread.hpp"
 #include "util/RatelimitBucket.hpp"
 #include "util/Twitch.hpp"
 
@@ -605,13 +605,20 @@ std::shared_ptr<Channel> TwitchIrcServer::getCustomChannel(
         // room follows goes back through getChannelOrEmpty, and that is what
         // is holding channelMutex right now — relocking it on this thread
         // aborts rather than waits.
+        // Explicitly queued. postToThread leaves the connection type at
+        // Auto, which on the thread that is already the receiver's means
+        // Direct — it runs inline, the lock is still held, and the deadlock
+        // this defers around is untouched.
         std::weak_ptr<ShadowChannel> pending = channel;
-        postToThread([pending] {
-            if (auto room = pending.lock())
-            {
-                room->initialize();
-            }
-        });
+        QMetaObject::invokeMethod(
+            QCoreApplication::instance(),
+            [pending] {
+                if (auto room = pending.lock())
+                {
+                    room->initialize();
+                }
+            },
+            Qt::QueuedConnection);
 
         return channel;
     }
