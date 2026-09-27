@@ -164,7 +164,11 @@ CreatePollDialog::CreatePollDialog(ChannelPtr channel, QWidget *parent)
     auto *buttons = new QDialogButtonBox(this);
     this->create_ = buttons->addButton(tr("Create poll"),
                                        QDialogButtonBox::AcceptRole);
-    auto *cancel = buttons->addButton(QDialogButtonBox::Cancel);
+    // Our own text rather than QDialogButtonBox::Cancel. The standard button
+    // takes its wording from Qt's catalogue, which a deployed build may not
+    // have, and a lone English word on an otherwise translated dialog is the
+    // kind of thing that only ever gets noticed by the person using it.
+    auto *cancel = buttons->addButton(tr("Cancel"), QDialogButtonBox::RejectRole);
     QObject::connect(this->create_, &QPushButton::clicked, this, [this] {
         this->submit();
     });

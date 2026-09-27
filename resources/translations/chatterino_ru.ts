@@ -200,6 +200,10 @@
         <source>This is not a Twitch channel.</source>
         <translation>Это не канал Twitch.</translation>
     </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
 </context>
 <context>
     <name>chatterino::GlobalBanHistoryPopup</name>

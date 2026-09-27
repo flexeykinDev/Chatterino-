@@ -68,11 +68,34 @@ std::unique_ptr<QTranslator> loadApplicationCatalogue(const QString &code)
 /// it just leaves those few strings in English.
 std::unique_ptr<QTranslator> loadQtCatalogue(const QString &code)
 {
-    auto translator = std::make_unique<QTranslator>();
-    if (translator->load(QStringLiteral("qtbase_%1").arg(code),
-                         QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+    // Qt's own strings — the buttons on standard dialogs, chiefly — live in a
+    // catalogue this application does not ship. Where it sits depends on how
+    // the build was put together:
+    //
+    //  - a development build finds it in the Qt installation it was built
+    //    against, as qtbase_<code>;
+    //  - a deployed build has whatever windeployqt copied next to the
+    //    executable, which is the combined qt_<code> rather than qtbase_<code>;
+    //  - and on a machine with no Qt installed, the first path does not exist
+    //    at all.
+    //
+    // Missing it is not loud. Everything this fork writes stays translated and
+    // a stray "Cancel" sits in the corner of an otherwise Russian dialog.
+    const QString directories[] = {
+        QLibraryInfo::path(QLibraryInfo::TranslationsPath),
+        QCoreApplication::applicationDirPath() + QStringLiteral("/translations"),
+    };
+
+    for (const auto &directory : directories)
     {
-        return translator;
+        for (const auto *prefix : {"qtbase_", "qt_"})
+        {
+            auto translator = std::make_unique<QTranslator>();
+            if (translator->load(QLatin1String(prefix) + code, directory))
+            {
+                return translator;
+            }
+        }
     }
 
     return nullptr;

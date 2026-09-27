@@ -209,3 +209,18 @@ TEST_F(LocalizationTest, SystemDefaultResolvesToAShippedLanguage)
     EXPECT_FALSE(applied.isEmpty());
     EXPECT_TRUE(Localization::isKnown(applied));
 }
+
+/// Qt's own strings come from a catalogue this application does not ship, and
+/// where it lives depends on how the build was assembled. Missing it is quiet:
+/// everything the fork writes stays translated, and a lone English "Cancel"
+/// sits on an otherwise Russian dialog.
+TEST_F(LocalizationTest, QtsOwnDialogButtonsAreTranslatedToo)
+{
+    Localization::apply("ru");
+
+    auto cancel = QCoreApplication::translate("QPlatformTheme", "Cancel");
+
+    EXPECT_NE(cancel, QStringLiteral("Cancel"))
+        << "Qt's catalogue did not load, so standard dialog buttons stay in "
+           "English";
+}
