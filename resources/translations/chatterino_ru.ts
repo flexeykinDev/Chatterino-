@@ -25,6 +25,17 @@
     </message>
 </context>
 <context>
+    <name>CreatePollDialog</name>
+    <message>
+        <source>Created poll: &apos;%1&apos;</source>
+        <translation>Опрос создан: «%1»</translation>
+    </message>
+    <message>
+        <source>Failed to create poll - %1</source>
+        <translation>Не удалось создать опрос — %1</translation>
+    </message>
+</context>
+<context>
     <name>GlobalBanMarkerElement</name>
     <message numerus="yes">
         <source>Banned on %n other channel(s). Click to see where and why.</source>
@@ -34,6 +45,37 @@
             <numerusform>Забанен ещё на %n каналах. Нажмите, чтобы увидеть где и за что.</numerusform>
             <numerusform>Забанен ещё на %n каналах. Нажмите, чтобы увидеть где и за что.</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>PollDraft</name>
+    <message>
+        <source>Give the poll a question.</source>
+        <translation>Напишите вопрос.</translation>
+    </message>
+    <message>
+        <source>The question is %1 characters; Twitch allows %2.</source>
+        <translation>В вопросе %1 символов, а Twitch разрешает %2.</translation>
+    </message>
+    <message>
+        <source>A poll needs at least two choices.</source>
+        <translation>Нужно хотя бы два варианта.</translation>
+    </message>
+    <message>
+        <source>Twitch allows at most %1 choices.</source>
+        <translation>Twitch разрешает не больше %1 вариантов.</translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; is too long; a choice may be %2 characters.</source>
+        <translation>«%1» слишком длинный: в варианте не больше %2 символов.</translation>
+    </message>
+    <message>
+        <source>A poll must run for at least %1 seconds.</source>
+        <translation>Опрос должен идти хотя бы %1 секунд.</translation>
+    </message>
+    <message>
+        <source>A poll may run for at most %1 minutes.</source>
+        <translation>Опрос может идти не дольше %1 минут.</translation>
     </message>
 </context>
 <context>
@@ -94,6 +136,69 @@
             <numerusform>%n человека печатают…</numerusform>
             <numerusform>%n человек печатают…</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>chatterino::CreatePollDialog</name>
+    <message>
+        <source>Create a poll</source>
+        <translation>Создать опрос</translation>
+    </message>
+    <message>
+        <source>What are we voting on?</source>
+        <translation>За что голосуем?</translation>
+    </message>
+    <message>
+        <source>Question</source>
+        <translation>Вопрос</translation>
+    </message>
+    <message>
+        <source> min</source>
+        <translation> мин</translation>
+    </message>
+    <message>
+        <source> sec</source>
+        <translation> сек</translation>
+    </message>
+    <message>
+        <source>Runs for</source>
+        <translation>Длительность</translation>
+    </message>
+    <message>
+        <source>off</source>
+        <translation>выкл</translation>
+    </message>
+    <message>
+        <source>Lets viewers spend channel points on extra votes. Zero turns it off.</source>
+        <translation>Позволяет зрителям тратить баллы канала на дополнительные голоса. Ноль — выключено.</translation>
+    </message>
+    <message>
+        <source>Points per extra vote</source>
+        <translation>Баллов за доп. голос</translation>
+    </message>
+    <message>
+        <source>Choices</source>
+        <translation>Варианты</translation>
+    </message>
+    <message>
+        <source>Add a choice</source>
+        <translation>Добавить вариант</translation>
+    </message>
+    <message>
+        <source>Create poll</source>
+        <translation>Создать опрос</translation>
+    </message>
+    <message>
+        <source>Choice %1</source>
+        <translation>Вариант %1</translation>
+    </message>
+    <message>
+        <source>Remove this choice</source>
+        <translation>Убрать вариант</translation>
+    </message>
+    <message>
+        <source>This is not a Twitch channel.</source>
+        <translation>Это не канал Twitch.</translation>
     </message>
 </context>
 <context>

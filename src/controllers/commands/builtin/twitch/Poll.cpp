@@ -12,6 +12,7 @@
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
+#include "widgets/dialogs/CreatePollDialog.hpp"
 
 #include <chrono>
 
@@ -28,6 +29,18 @@ namespace chatterino::commands {
 
 QString createPoll(const CommandContext &ctx)
 {
+    // Bare `/poll` opens the form. Writing out the arguments is a lot of
+    // punctuation to get right in a chat box for something with four fields,
+    // and the usage text this used to print was no help in filling them in.
+    if (ctx.words.size() <= 1 && ctx.channel != nullptr)
+    {
+        auto *dialog = new CreatePollDialog(ctx.channel);
+        dialog->setAttribute(Qt::WA_DeleteOnClose);
+        dialog->show();
+        dialog->raise();
+        return "";
+    }
+
     const auto command = QStringLiteral("/poll");
     const auto usage = QStringLiteral(
         R"(Usage: "/poll --title "<title>" --duration <duration>[time unit] --choice "<choice1>" --choice "<choice2>" [options...]" - Creates a poll for users to vote among the defined options. Title may not exceed 60 characters. There must be between two and five poll choices. Duration must be a positive integer; time unit (optional, default=s) must be one of s, m; maximum duration is 30 minutes. Options: --points <points> to allow spending the specified channel points for each additional vote.)");
