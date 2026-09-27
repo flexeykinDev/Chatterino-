@@ -749,14 +749,6 @@ void SplitHeader::updateRoomModes()
             this->modeButton_->setText(text);
             this->modeButton_->show();
         }
-        else if (twitchChannel->hasModRights())
-        {
-            // Nothing is set, which is precisely when somebody wants to set
-            // something. Hiding the only way in until a mode is already on
-            // makes the first one unreachable.
-            this->modeButton_->setText(QStringLiteral("modes"));
-            this->modeButton_->show();
-        }
         else
         {
             this->modeButton_->hide();
