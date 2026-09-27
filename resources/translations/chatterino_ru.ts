@@ -2,6 +2,53 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ru_RU" sourcelanguage="en_US">
 <context>
+    <name>ChatModes</name>
+    <message>
+        <source>%1d</source>
+        <translation>%1д</translation>
+    </message>
+    <message>
+        <source>%1h</source>
+        <translation>%1ч</translation>
+    </message>
+    <message>
+        <source>%1m</source>
+        <translation>%1м</translation>
+    </message>
+    <message>
+        <source>%1s</source>
+        <translation>%1с</translation>
+    </message>
+    <message>
+        <source>any follower</source>
+        <translation>любой фолловер</translation>
+    </message>
+    <message>
+        <source>off</source>
+        <translation>выкл</translation>
+    </message>
+    <message>
+        <source>Followers only</source>
+        <translation>Только фолловеры</translation>
+    </message>
+    <message>
+        <source>Slow mode</source>
+        <translation>Слоумод</translation>
+    </message>
+    <message>
+        <source>Subscribers only</source>
+        <translation>Сабчат</translation>
+    </message>
+    <message>
+        <source>Emotes only</source>
+        <translation>Смайл-режим</translation>
+    </message>
+    <message>
+        <source>Unique chat</source>
+        <translation>Уникальный чат</translation>
+    </message>
+</context>
+<context>
     <name>CompanionHealth</name>
     <message>
         <source>Off. Nothing is contacted until an address is set.</source>
@@ -136,6 +183,17 @@
             <numerusform>%n человека печатают…</numerusform>
             <numerusform>%n человек печатают…</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>chatterino::ChatModesPopup</name>
+    <message>
+        <source>Chat modes</source>
+        <translation>Режимы чата</translation>
+    </message>
+    <message>
+        <source>CHAT MODES</source>
+        <translation>РЕЖИМЫ ЧАТА</translation>
     </message>
 </context>
 <context>

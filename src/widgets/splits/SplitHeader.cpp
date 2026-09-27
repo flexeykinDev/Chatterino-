@@ -32,6 +32,7 @@
 #include "widgets/helper/CommonTexts.hpp"
 #include "widgets/Label.hpp"
 #include "widgets/splits/PinnedMessageWidget.hpp"
+#include "widgets/splits/ChatModesPopup.hpp"
 #include "widgets/splits/Split.hpp"
 #include "widgets/splits/SplitContainer.hpp"
 #include "widgets/TooltipWidget.hpp"
@@ -376,7 +377,17 @@ void SplitHeader::initializeLayout()
         this->modeButton_ = makeWidget<LabelButton>([&](auto w) {
             w->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
             w->hide();
-            w->setMenu(this->createChatModeMenu());
+            QObject::connect(w, &Button::leftClicked, this, [this] {
+                auto *twitch = dynamic_cast<TwitchChannel *>(
+                    this->split_->getChannel().get());
+
+                auto *popup = ChatModesPopup::forChannel(
+                    this->split_->getChannel(), twitch, this);
+                popup->setAttribute(Qt::WA_DeleteOnClose);
+                popup->move(this->mapToGlobal(
+                    QPoint(0, this->height())));
+                popup->show();
+            });
         }),
         // pin indicator
         this->pinButton_,
@@ -839,6 +850,14 @@ void SplitHeader::updateRoomModes()
         if (!text.isEmpty())
         {
             this->modeButton_->setText(text);
+            this->modeButton_->show();
+        }
+        else if (twitchChannel->hasModRights())
+        {
+            // Nothing is set, which is precisely when somebody wants to set
+            // something. Hiding the only way in until a mode is already on
+            // makes the first one unreachable.
+            this->modeButton_->setText(QStringLiteral("modes"));
             this->modeButton_->show();
         }
         else

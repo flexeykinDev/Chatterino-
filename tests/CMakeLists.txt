@@ -27,6 +27,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/RatelimitBucket.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/Hotkeys.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/ChatModes.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/ChatModesPopup.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/CreatePollDialog.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollDraft.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollState.cpp
