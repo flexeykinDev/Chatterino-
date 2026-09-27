@@ -362,6 +362,14 @@ void GeneralPage::initLayout(GeneralPageView &layout)
                      "indicate one of the channels in the tab is live.")
         ->addTo(layout);
 
+    SettingWidget::checkbox("Show channel avatars on tabs", s.tabAvatars)
+        ->setTooltip(
+            "Replaces a tab's name with the channel's profile picture. A live "
+            "channel is ringed in red and an idle one is dimmed, so a glance "
+            "along the row says who is on air. Tabs that are not a single "
+            "Twitch channel, or whose channel has no picture, keep their name.")
+        ->addTo(layout);
+
     layout.addTitle("Chat");
 
     layout.addDropdown<float>(
