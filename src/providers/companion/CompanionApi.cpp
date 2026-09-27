@@ -16,6 +16,8 @@
 #include <QJsonObject>
 #include <QUrlQuery>
 
+#include "common/Literals.hpp"
+
 #include <utility>
 
 namespace {
@@ -27,6 +29,8 @@ constexpr int requestTimeoutMs = 10000;
 }  // namespace
 
 namespace chatterino {
+
+using namespace literals;
 
 CompanionUrls::CompanionUrls(QString baseUrl)
 {
@@ -100,6 +104,22 @@ std::optional<QUrl> CompanionUrls::vouch(const QString &offenderId) const
     return QUrl(this->baseUrl_ + "/v1/bans/" +
                 QString::fromUtf8(QUrl::toPercentEncoding(offenderId)) +
                 "/vouch");
+}
+
+std::optional<QUrl> CompanionUrls::socket() const
+{
+    if (!this->isConfigured())
+    {
+        return std::nullopt;
+    }
+
+    QUrl url(this->baseUrl_ + "/socket");
+
+    // Anything already secure stays secure. A plain address becomes a plain
+    // socket, which is what a local server serves.
+    url.setScheme(url.scheme() == "https" ? u"wss"_s : u"ws"_s);
+
+    return url;
 }
 
 void CompanionApi::setBaseUrl(const QString &baseUrl)

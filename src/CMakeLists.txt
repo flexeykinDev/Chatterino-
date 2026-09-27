@@ -411,6 +411,8 @@ set(SOURCE_FILES
         providers/companion/CompanionHealth.hpp
         providers/companion/CompanionProtocol.cpp
         providers/companion/CompanionProtocol.hpp
+        providers/companion/CompanionSocket.cpp
+        providers/companion/CompanionSocket.hpp
         providers/companion/GlobalBan.cpp
         providers/companion/GlobalBan.hpp
         providers/companion/GlobalBanMarker.cpp

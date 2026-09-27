@@ -7,6 +7,7 @@
 #include "Application.hpp"
 #include "controllers/accounts/AccountController.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
+#include "providers/companion/CompanionSocket.hpp"
 #include "providers/companion/GlobalBan.hpp"
 #include "singletons/WindowManager.hpp"
 
@@ -68,6 +69,8 @@ void CompanionController::followSetting(QStringSetting &setting)
     }
 }
 
+CompanionController::~CompanionController() = default;
+
 void CompanionController::setBaseUrl(const QString &baseUrl)
 {
     auto hadAnswers = !this->registry_.isEmpty();
@@ -76,6 +79,11 @@ void CompanionController::setBaseUrl(const QString &baseUrl)
     this->registry_.clear();
     this->flushTimer_.stop();
     this->refreshAvailability();
+
+    if (this->socket_ || this->api_.isConfigured())
+    {
+        this->socket()->setBaseUrl(baseUrl);
+    }
 
     if (hadAnswers)
     {
@@ -90,6 +98,16 @@ void CompanionController::setBaseUrl(const QString &baseUrl)
 bool CompanionController::isEnabled() const
 {
     return this->api_.isConfigured();
+}
+
+CompanionSocket *CompanionController::socket()
+{
+    if (!this->socket_)
+    {
+        this->socket_ = std::make_unique<CompanionSocket>();
+    }
+
+    return this->socket_.get();
 }
 
 CompanionStatus CompanionController::status() const

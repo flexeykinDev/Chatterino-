@@ -4,6 +4,9 @@
 
 #include "providers/companion/CompanionProtocol.hpp"
 
+#include "providers/companion/CompanionApi.hpp"
+#include "providers/companion/CompanionSocket.hpp"
+
 #include <gtest/gtest.h>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -258,4 +261,58 @@ TEST(CompanionFramesIn, rejectsFramesMissingWhatTheyAreAbout)
     EXPECT_FALSE(parseCompanionFrame(R"({"t":"typing","channel":"11"})"));
     EXPECT_FALSE(parseCompanionFrame(R"({"t":"ack","id":1})"));
     EXPECT_FALSE(parseCompanionFrame(R"({"t":"ready"})"));
+}
+
+// --- socket plumbing ---------------------------------------------------
+
+TEST(CompanionSocketUrl, swapsTheSchemeForTheSocket)
+{
+    EXPECT_EQ(CompanionUrls("http://127.0.0.1:8080").socket()->toString(),
+              "ws://127.0.0.1:8080/socket");
+    EXPECT_EQ(CompanionUrls("https://example.invalid/api").socket()->toString(),
+              "wss://example.invalid/api/socket");
+}
+
+TEST(CompanionSocketUrl, toleratesATrailingSlashOnTheBase)
+{
+    EXPECT_EQ(CompanionUrls("http://127.0.0.1:8080/").socket()->toString(),
+              "ws://127.0.0.1:8080/socket");
+}
+
+TEST(CompanionSocketUrl, hasNoSocketWithoutAnAddress)
+{
+    EXPECT_FALSE(CompanionUrls("").socket().has_value());
+    EXPECT_FALSE(CompanionUrls("not a url").socket().has_value());
+}
+
+TEST(CompanionReconnect, waitsLongerAfterEachFailure)
+{
+    auto first = companionReconnectDelayMs(0);
+    auto second = companionReconnectDelayMs(1);
+    auto third = companionReconnectDelayMs(2);
+
+    EXPECT_GT(second, first);
+    EXPECT_GT(third, second);
+}
+
+TEST(CompanionReconnect, startsQuicklyEnoughToRecoverFromABlip)
+{
+    // A server restarting should not cost a minute of staring at nothing.
+    EXPECT_LE(companionReconnectDelayMs(0), 2000);
+}
+
+TEST(CompanionReconnect, stopsGrowingSoADeadServiceIsStillRetried)
+{
+    // Unbounded backoff pins an overnight outage at a wait nobody will sit
+    // through, which is indistinguishable from the client being broken.
+    auto ceiling = companionReconnectDelayMs(1000);
+
+    EXPECT_LE(ceiling, 60000);
+    EXPECT_EQ(companionReconnectDelayMs(100), ceiling);
+}
+
+TEST(CompanionReconnect, doesNotOverflowOnAbsurdAttemptCounts)
+{
+    EXPECT_GT(companionReconnectDelayMs(64), 0);
+    EXPECT_GT(companionReconnectDelayMs(1000000), 0);
 }

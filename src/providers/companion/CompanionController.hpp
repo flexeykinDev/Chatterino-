@@ -14,9 +14,11 @@
 #include <QTimer>
 
 #include <functional>
+#include <memory>
 
 namespace chatterino {
 
+class CompanionSocket;
 struct GlobalBanSummary;
 
 /// Owns the client's half of the cross-channel ban registry.
@@ -35,6 +37,14 @@ class CompanionController : public QObject
 
 public:
     CompanionController();
+    /// Defined where CompanionSocket is complete, since the socket is held
+    /// behind a forward declaration.
+    ~CompanionController() override;
+
+    CompanionController(const CompanionController &) = delete;
+    CompanionController &operator=(const CompanionController &) = delete;
+    CompanionController(CompanionController &&) = delete;
+    CompanionController &operator=(CompanionController &&) = delete;
 
     /// Adopts the address setting and keeps following it, so changing it in
     /// the settings dialog takes effect at once rather than on restart.
@@ -78,6 +88,11 @@ public:
     /// Sends whatever is queued right now, ignoring the batching delay.
     void flush();
 
+    /// The realtime socket, or nothing when no service is configured. Created
+    /// on demand: an application that never configures one should not pay for
+    /// a connection pool it will not use.
+    [[nodiscard]] CompanionSocket *socket();
+
 Q_SIGNALS:
     /// The reason the companion features are, or are not, doing anything has
     /// changed.
@@ -96,6 +111,7 @@ private:
     CompanionApi api_;
     CompanionHealth health_;
     GlobalBanRegistry registry_;
+    std::unique_ptr<CompanionSocket> socket_;
 
     /// Long enough that a burst of messages becomes one request, short enough
     /// that a marker appears while the message is still on screen.

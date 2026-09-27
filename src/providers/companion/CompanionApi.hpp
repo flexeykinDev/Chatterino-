@@ -43,6 +43,12 @@ public:
     /// the vouch back. Both verbs share a URL; the caller picks the verb.
     [[nodiscard]] std::optional<QUrl> vouch(const QString &offenderId) const;
 
+    /// The realtime socket, on the same origin as the API with the scheme
+    /// swapped: `http` becomes `ws`, `https` becomes `wss`. Getting that pair
+    /// wrong fails at connect time with an error about the scheme rather than
+    /// about the address, which reads like a misconfigured server.
+    [[nodiscard]] std::optional<QUrl> socket() const;
+
 private:
     /// Normalised: no trailing slash, empty when unconfigured.
     QString baseUrl_;
