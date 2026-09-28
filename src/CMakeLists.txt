@@ -511,6 +511,8 @@ set(SOURCE_FILES
         providers/twitch/OutgoingRaid.hpp
         providers/twitch/PollState.cpp
         providers/twitch/PollState.hpp
+        providers/twitch/PredictionState.cpp
+        providers/twitch/PredictionState.hpp
         providers/twitch/PubSubClient.cpp
         providers/twitch/PubSubClient.hpp
         providers/twitch/PubSubManager.cpp
@@ -632,6 +634,8 @@ set(SOURCE_FILES
         util/FunctionEventFilter.hpp
         util/FuzzyConvert.cpp
         util/FuzzyConvert.hpp
+        util/PercentageShares.cpp
+        util/PercentageShares.hpp
         util/Helpers.cpp
         util/Helpers.hpp
         util/ImageUploader.cpp

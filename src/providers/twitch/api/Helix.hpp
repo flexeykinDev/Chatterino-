@@ -585,12 +585,17 @@ struct HelixPredictionOutcome {
     QString title;
     int users;
     int channelPoints;
+    /// "BLUE" or "PINK". Twitch colours the two sides and people refer to them
+    /// by colour, so a prediction shown in the wrong one reads as the wrong
+    /// prediction.
+    QString color;
 
     explicit HelixPredictionOutcome(const QJsonObject &jsonObject)
         : id(jsonObject.value("id").toString())
         , title(jsonObject.value("title").toString())
         , users(jsonObject.value("users").toInt())
         , channelPoints(jsonObject.value("channel_points").toInt())
+        , color(jsonObject.value("color").toString())
     {
     }
 };
@@ -600,6 +605,12 @@ struct HelixPrediction {
     QString title;
     QString winningOutcomeID;
     QString status;
+    /// When betting opened, and how long it stays open for. Together they are
+    /// the countdown; neither is any use on its own.
+    QString createdAt;
+    int predictionWindow = 0;
+    QString lockedAt;
+    QString endedAt;
     std::vector<HelixPredictionOutcome> outcomes;
 
     explicit HelixPrediction(const QJsonObject &jsonObject)
@@ -607,6 +618,10 @@ struct HelixPrediction {
         , title(jsonObject.value("title").toString())
         , winningOutcomeID(jsonObject.value("winning_outcome_id").toString())
         , status(jsonObject.value("status").toString())
+        , createdAt(jsonObject.value("created_at").toString())
+        , predictionWindow(jsonObject.value("prediction_window").toInt())
+        , lockedAt(jsonObject.value("locked_at").toString())
+        , endedAt(jsonObject.value("ended_at").toString())
     {
         const auto &data = jsonObject.value("outcomes").toArray();
         this->outcomes.reserve(data.size());

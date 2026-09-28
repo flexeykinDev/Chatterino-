@@ -4,6 +4,8 @@
 
 #include "providers/twitch/PollState.hpp"
 
+#include "util/PercentageShares.hpp"
+
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
@@ -156,51 +158,14 @@ std::optional<Poll> parsePollFrame(const QJsonObject &root)
 
 std::vector<int> pollPercentages(const std::vector<PollChoice> &choices)
 {
-    std::vector<int> shares(choices.size(), 0);
-
-    auto total = std::accumulate(choices.begin(), choices.end(), 0,
-                                 [](int sum, const PollChoice &choice) {
-                                     return sum + std::max(0, choice.votes);
-                                 });
-    if (total <= 0)
+    std::vector<qint64> votes;
+    votes.reserve(choices.size());
+    for (const auto &choice : choices)
     {
-        return shares;
+        votes.push_back(choice.votes);
     }
 
-    // Floor each share, then hand the leftover to whoever lost most to the
-    // rounding. Rounding each independently gives columns that read 33/33/33
-    // and look like a bug to anyone who adds them up.
-    std::vector<std::pair<int, std::size_t>> remainders;
-    int assigned = 0;
-
-    for (std::size_t i = 0; i < choices.size(); i++)
-    {
-        auto votes = std::max(0, choices[i].votes);
-        auto scaled = votes * 100;
-
-        shares[i] = scaled / total;
-        assigned += shares[i];
-        remainders.emplace_back(scaled % total, i);
-    }
-
-    std::ranges::sort(remainders, [](const auto &a, const auto &b) {
-        // Largest remainder first; ties go to the earlier choice so the same
-        // votes always produce the same picture.
-        if (a.first != b.first)
-        {
-            return a.first > b.first;
-        }
-        return a.second < b.second;
-    });
-
-    for (int i = 0; assigned < 100 && i < static_cast<int>(remainders.size());
-         i++)
-    {
-        shares[remainders[static_cast<std::size_t>(i)].second]++;
-        assigned++;
-    }
-
-    return shares;
+    return percentageShares(votes);
 }
 
 }  // namespace chatterino
