@@ -153,6 +153,24 @@
     </message>
 </context>
 <context>
+    <name>MentionsButton</name>
+    <message>
+        <source>Everywhere you have been mentioned, with a box to reply from.</source>
+        <translation>Все упоминания о вас, с полем для ответа.</translation>
+    </message>
+</context>
+<context>
+    <name>OutgoingRaid</name>
+    <message>
+        <source>Raiding %1 now</source>
+        <translation>Рейд на %1 начинается</translation>
+    </message>
+    <message>
+        <source>Raiding %1 in %2</source>
+        <translation>Рейд на %1 через %2</translation>
+    </message>
+</context>
+<context>
     <name>PollDraft</name>
     <message>
         <source>Give the poll a question.</source>
@@ -192,6 +210,13 @@
     <message>
         <source>Uses this client, but is not running it now</source>
         <translation>Пользуется этим клиентом, но сейчас не в сети</translation>
+    </message>
+</context>
+<context>
+    <name>RaidBannerWidget</name>
+    <message>
+        <source>Could not cancel the raid - %1</source>
+        <translation>Не удалось отменить рейд — %1</translation>
     </message>
 </context>
 <context>
@@ -444,6 +469,13 @@
     <message>
         <source>done</source>
         <translation>готово</translation>
+    </message>
+</context>
+<context>
+    <name>chatterino::RaidBannerWidget</name>
+    <message>
+        <source>Cancel</source>
+        <translation>Отменить</translation>
     </message>
 </context>
 <context>

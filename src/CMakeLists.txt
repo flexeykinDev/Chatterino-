@@ -507,6 +507,8 @@ set(SOURCE_FILES
         providers/twitch/MassGift.hpp
         providers/twitch/Mentions.cpp
         providers/twitch/Mentions.hpp
+        providers/twitch/OutgoingRaid.cpp
+        providers/twitch/OutgoingRaid.hpp
         providers/twitch/PollState.cpp
         providers/twitch/PollState.hpp
         providers/twitch/PubSubClient.cpp
@@ -948,6 +950,8 @@ set(SOURCE_FILES
         widgets/splits/PinnedMessageWidget.hpp
         widgets/splits/PollBannerWidget.cpp
         widgets/splits/PollBannerWidget.hpp
+        widgets/splits/RaidBannerWidget.cpp
+        widgets/splits/RaidBannerWidget.hpp
         )
 
 if (APPLE)

@@ -25,6 +25,7 @@ class SplitContainer;
 class SplitOverlay;
 class PinnedMessageWidget;
 class PollBannerWidget;
+class RaidBannerWidget;
 class SelectChannelDialog;
 class OverlayWindow;
 
@@ -174,6 +175,7 @@ private:
     SplitHeader *const header_;
     PinnedMessageWidget *const pinnedBanner_;
     PollBannerWidget *const pollBanner_;
+    RaidBannerWidget *const raidBanner_;
     ChannelView *const view_;
     SplitInput *const input_;
     SplitOverlay *const overlay_;

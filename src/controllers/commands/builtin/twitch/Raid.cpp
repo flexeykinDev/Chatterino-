@@ -8,9 +8,12 @@
 #include "controllers/accounts/AccountController.hpp"
 #include "controllers/commands/CommandContext.hpp"
 #include "providers/twitch/api/Helix.hpp"
+#include "providers/twitch/OutgoingRaid.hpp"
 #include "providers/twitch/TwitchAccount.hpp"
 #include "providers/twitch/TwitchChannel.hpp"
 #include "util/Twitch.hpp"
+
+#include <QDateTime>
 
 namespace {
 
@@ -156,8 +159,16 @@ QString startRaid(const CommandContext &ctx)
          channel{ctx.channel}](const HelixUser &targetUser) {
             getHelix()->startRaid(
                 twitchChannel->roomId(), targetUser.id,
-                [] {
-                    // do nothing
+                [twitchChannel, targetUser] {
+                    // Twitch waits before sending the audience over, and
+                    // until now nothing said so: the command returned in
+                    // silence and the next thing that happened was everyone
+                    // leaving. The banner counts that window down.
+                    twitchChannel->setOutgoingRaid(OutgoingRaid{
+                        .targetLogin = targetUser.login,
+                        .targetDisplayName = targetUser.displayName,
+                        .startedAt = QDateTime::currentDateTime(),
+                    });
                 },
                 [channel, targetUser](auto error, auto message) {
                     auto errorMessage = formatStartRaidError(error, message);
@@ -205,8 +216,8 @@ QString cancelRaid(const CommandContext &ctx)
 
     getHelix()->cancelRaid(
         ctx.twitchChannel->roomId(),
-        [] {
-            // do nothing
+        [twitchChannel{ctx.twitchChannel}] {
+            twitchChannel->setOutgoingRaid({});
         },
         [channel{ctx.channel}](auto error, auto message) {
             auto errorMessage = formatCancelRaidError(error, message);

@@ -15,6 +15,7 @@
 #include "providers/twitch/api/Helix.hpp"
 #include "providers/twitch/eventsub/SubscriptionHandle.hpp"
 #include "providers/twitch/MassGift.hpp"
+#include "providers/twitch/OutgoingRaid.hpp"
 #include "providers/twitch/TwitchEmotes.hpp"
 #include "util/QStringHash.hpp"
 #include "util/ThreadGuard.hpp"
@@ -223,6 +224,13 @@ public:
     SharedAccessGuard<const RoomModes> accessRoomModes() const;
     SharedAccessGuard<const StreamStatus> accessStreamStatus() const;
 
+    /// The raid this channel has started, while it is still waiting to go
+    /// out. Empty once the countdown has run down, so nothing has to remember
+    /// to clear it, and every split on the channel agrees.
+    [[nodiscard]] std::optional<OutgoingRaid> outgoingRaid() const;
+    /// Records a raid as started, or clears it when called with nothing.
+    void setOutgoingRaid(std::optional<OutgoingRaid> raid);
+
     /// The community sub gifts this channel has announced but not finished
     /// sending, so their individual gifts can be folded into one message.
     ///
@@ -372,6 +380,9 @@ public:
 
     pajlada::Signals::Signal<const std::vector<HelixMinimalUser> &>
         sharedChatStatusChanged;
+
+    /// A raid was started or called off.
+    pajlada::Signals::NoArgSignal outgoingRaidChanged;
 
     // Channel point rewards
     void addQueuedRedemption(const QString &rewardId,
@@ -594,6 +605,7 @@ private:
     boost::circular_buffer_space_optimized<QueuedRedemption>
         waitingRedemptions_{MAX_QUEUED_REDEMPTIONS};
     MassGiftTracker massGifts_;
+    std::optional<OutgoingRaid> outgoingRaid_;
 
     bool mod_ = false;
     bool vip_ = false;

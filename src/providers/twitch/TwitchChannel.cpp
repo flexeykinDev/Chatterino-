@@ -507,6 +507,29 @@ void TwitchChannel::setSeventvEmotes(std::shared_ptr<const EmoteMap> &&map)
     this->seventvEmotes_.set(std::move(map));
 }
 
+std::optional<OutgoingRaid> TwitchChannel::outgoingRaid() const
+{
+    if (!this->outgoingRaid_.has_value())
+    {
+        return std::nullopt;
+    }
+
+    // Expiring on read rather than on a timer: a raid that has gone out is
+    // not a raid any more, and there is nothing to keep ticking to find out.
+    if (raidHasGone(*this->outgoingRaid_, QDateTime::currentDateTime()))
+    {
+        return std::nullopt;
+    }
+
+    return this->outgoingRaid_;
+}
+
+void TwitchChannel::setOutgoingRaid(std::optional<OutgoingRaid> raid)
+{
+    this->outgoingRaid_ = std::move(raid);
+    this->outgoingRaidChanged.invoke();
+}
+
 MassGiftTracker &TwitchChannel::massGifts()
 {
     return this->massGifts_;

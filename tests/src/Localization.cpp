@@ -9,6 +9,7 @@
 #include "widgets/dialogs/GlobalBanHistoryPopup.hpp"
 #include "widgets/dialogs/MentionsPopup.hpp"
 #include "widgets/splits/ChatModesPopup.hpp"
+#include "widgets/splits/RaidBannerWidget.hpp"
 #include "widgets/dialogs/SettingsDialog.hpp"
 #include "widgets/settingspages/HighlightingPage.hpp"
 #include "widgets/settingspages/NotificationPage.hpp"
@@ -153,6 +154,8 @@ TEST_F(LocalizationTest, TranslatedClassesDeclareTheirOwnContext)
                  "chatterino::ChatModesPopup");
     EXPECT_STREQ(CreatePollDialog::staticMetaObject.className(),
                  "chatterino::CreatePollDialog");
+    EXPECT_STREQ(RaidBannerWidget::staticMetaObject.className(),
+                 "chatterino::RaidBannerWidget");
 }
 
 /// A class that is not a QObject gets its context from
