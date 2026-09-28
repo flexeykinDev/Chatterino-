@@ -35,6 +35,7 @@ set(test_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/OutgoingRaid.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/RaidBannerWidget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollDraft.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/PollBannerWidget.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PollState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PredictionState.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/PresenceRegistry.cpp

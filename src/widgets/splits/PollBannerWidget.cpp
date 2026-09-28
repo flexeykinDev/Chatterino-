@@ -10,7 +10,10 @@
 #include "singletons/Fonts.hpp"
 #include "singletons/Theme.hpp"
 
+#include <QDesktopServices>
+#include <QMouseEvent>
 #include <QPainter>
+#include <QUrl>
 
 namespace {
 
@@ -71,6 +74,7 @@ PollBannerWidget::PollBannerWidget(BaseWidget *parent)
 void PollBannerWidget::setChannel(TwitchChannel *channel)
 {
     QString roomId;
+    this->channelName_ = channel == nullptr ? QString() : channel->getName();
     if (channel != nullptr)
     {
         roomId = channel->roomId();
@@ -98,6 +102,40 @@ void PollBannerWidget::setChannel(TwitchChannel *channel)
 
     // Whatever was on screen belonged to the channel this split just left.
     this->hidePoll();
+}
+
+QString PollBannerWidget::voteUrl() const
+{
+    if (this->channelName_.isEmpty())
+    {
+        return {};
+    }
+
+    // The popout chat rather than the channel page: it is where the poll
+    // itself appears, and it does not start playing a stream to get there.
+    return QStringLiteral("https://www.twitch.tv/popout/%1/chat?popout=")
+        .arg(this->channelName_);
+}
+
+void PollBannerWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() != Qt::LeftButton || !this->poll_.has_value())
+    {
+        BaseWidget::mouseReleaseEvent(event);
+        return;
+    }
+
+    // Twitch has no API a third-party client can vote through: voting lives
+    // behind a private GraphQL endpoint that will not accept a token minted
+    // for anybody else's application. Rather than pretend, this opens the one
+    // place the vote can be cast.
+    auto url = this->voteUrl();
+    if (!url.isEmpty())
+    {
+        QDesktopServices::openUrl(QUrl(url));
+    }
+
+    event->accept();
 }
 
 void PollBannerWidget::onPoll(const Poll &poll)
@@ -141,6 +179,21 @@ void PollBannerWidget::hidePoll()
 void PollBannerWidget::refresh()
 {
     this->setVisible(this->poll_.has_value());
+
+    if (this->poll_.has_value() && this->poll_->isRunning() &&
+        !this->voteUrl().isEmpty())
+    {
+        this->setCursor(Qt::PointingHandCursor);
+        this->setToolTip(
+            tr("Votes can only be cast on Twitch's own page — click to open "
+               "it. No client but Twitch's has an API to vote through."));
+    }
+    else
+    {
+        this->unsetCursor();
+        this->setToolTip({});
+    }
+
     this->updateGeometry();
     this->update();
 }

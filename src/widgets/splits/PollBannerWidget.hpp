@@ -39,7 +39,12 @@ public:
     /// it, which also takes the Twitch channel directly.
     void setChannel(TwitchChannel *channel);
 
+    /// Where clicking the banner goes. Twitch's own page is the only place a
+    /// vote can be cast, so this is the nearest thing to voting from here.
+    [[nodiscard]] QString voteUrl() const;
+
 protected:
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
     QSize sizeHint() const override;
     void themeChangedEvent() override;
@@ -52,6 +57,8 @@ private:
     void refresh();
 
     QString roomId_;
+    /// Kept alongside the id because the vote page is addressed by name.
+    QString channelName_;
     std::optional<Poll> poll_;
 
     /// Redraws the countdown, and takes a finished poll down once its result

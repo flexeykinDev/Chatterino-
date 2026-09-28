@@ -470,6 +470,10 @@
         <source>done</source>
         <translation>готово</translation>
     </message>
+    <message>
+        <source>Votes can only be cast on Twitch&apos;s own page — click to open it. No client but Twitch&apos;s has an API to vote through.</source>
+        <translation>Проголосовать можно только на странице Twitch — нажмите, чтобы открыть её. Ни у одного клиента, кроме самого Twitch, нет API для голосования.</translation>
+    </message>
 </context>
 <context>
     <name>chatterino::RaidBannerWidget</name>
